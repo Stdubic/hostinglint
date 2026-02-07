@@ -1,0 +1,359 @@
+#!/usr/bin/env node
+// HostingLint CLI
+// Usage: hostinglint check <path> [options]
+
+import { Command } from 'commander';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { resolve, extname, relative } from 'node:path';
+import {
+  analyzePhp,
+  analyzePerl,
+  analyzeOpenPanel,
+} from '@hostinglint/core';
+import type {
+  LintResult,
+  Platform,
+  PhpVersion,
+  Severity,
+  OutputFormat,
+  LintSummary,
+} from '@hostinglint/core';
+
+const program = new Command();
+
+program
+  .name('hostinglint')
+  .description('Static analysis toolkit for hosting control panel modules')
+  .version('0.1.0');
+
+program
+  .command('check')
+  .description('Check hosting module files for issues')
+  .argument('<path>', 'Path to file or directory to check')
+  .option('-p, --platform <platform>', 'Target platform: whmcs, cpanel, openpanel (auto-detected if not specified)')
+  .option('--php-version <version>', 'Target PHP version for compatibility checks (default: 8.3)', '8.3')
+  .option('-f, --format <format>', 'Output format: text, json, sarif (default: text)', 'text')
+  .option('--no-security', 'Disable security checks')
+  .option('--no-best-practices', 'Disable best practice checks')
+  .action((targetPath: string, options: CheckOptions) => {
+    const resolvedPath = resolve(targetPath);
+    const files = collectFiles(resolvedPath);
+
+    if (files.length === 0) {
+      console.error(`No supported files found in: ${targetPath}`);
+      process.exit(1);
+    }
+
+    const summary = analyzeFiles(files, options);
+    outputResults(summary, options.format as OutputFormat);
+
+    // Exit with error code if there are errors
+    if (summary.errors > 0) {
+      process.exit(1);
+    }
+  });
+
+program.parse();
+
+// =============================================================================
+// Types
+// =============================================================================
+
+interface CheckOptions {
+  platform?: Platform;
+  phpVersion: string;
+  format: string;
+  security: boolean;
+  bestPractices: boolean;
+}
+
+// =============================================================================
+// File Collection
+// =============================================================================
+
+/**
+ * Collect all supported files from a path (file or directory)
+ */
+function collectFiles(targetPath: string): string[] {
+  const stat = statSync(targetPath);
+
+  if (stat.isFile()) {
+    return isSupportedFile(targetPath) ? [targetPath] : [];
+  }
+
+  if (stat.isDirectory()) {
+    return walkDirectory(targetPath);
+  }
+
+  return [];
+}
+
+/**
+ * Recursively walk a directory and collect supported files
+ */
+function walkDirectory(dir: string): string[] {
+  const files: string[] = [];
+  const entries = readdirSync(dir);
+
+  for (const entry of entries) {
+    // Skip hidden directories and node_modules
+    if (entry.startsWith('.') || entry === 'node_modules' || entry === 'vendor') {
+      continue;
+    }
+
+    const fullPath = resolve(dir, entry);
+    const stat = statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      files.push(...walkDirectory(fullPath));
+    } else if (isSupportedFile(fullPath)) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+/**
+ * Check if a file has a supported extension
+ */
+function isSupportedFile(filePath: string): boolean {
+  const ext = extname(filePath).toLowerCase();
+  const fileName = filePath.split('/').pop()?.toLowerCase() ?? '';
+
+  return (
+    ext === '.php' ||
+    ext === '.pl' ||
+    ext === '.pm' ||
+    ext === '.cgi' ||
+    fileName === 'dockerfile' ||
+    fileName.startsWith('dockerfile.')
+  );
+}
+
+// =============================================================================
+// Analysis
+// =============================================================================
+
+/**
+ * Detect platform from file extension
+ */
+function detectPlatform(filePath: string): Platform | null {
+  const ext = extname(filePath).toLowerCase();
+  const fileName = filePath.split('/').pop()?.toLowerCase() ?? '';
+
+  if (ext === '.php') return 'whmcs';
+  if (ext === '.pl' || ext === '.pm' || ext === '.cgi') return 'cpanel';
+  if (fileName === 'dockerfile' || fileName.startsWith('dockerfile.')) return 'openpanel';
+
+  return null;
+}
+
+/**
+ * Analyze all collected files
+ */
+function analyzeFiles(files: string[], options: CheckOptions): LintSummary {
+  const summary: LintSummary = {
+    filesChecked: files.length,
+    errors: 0,
+    warnings: 0,
+    infos: 0,
+    results: new Map(),
+  };
+
+  for (const file of files) {
+    const code = readFileSync(file, 'utf-8');
+    const platform = options.platform ?? detectPlatform(file);
+    let results: LintResult[] = [];
+
+    switch (platform) {
+      case 'whmcs':
+        results = analyzePhp(code, file, {
+          phpVersion: options.phpVersion as PhpVersion,
+          security: options.security,
+          bestPractices: options.bestPractices,
+        });
+        break;
+      case 'cpanel':
+        results = analyzePerl(code, file, {
+          security: options.security,
+          bestPractices: options.bestPractices,
+        });
+        break;
+      case 'openpanel':
+        results = analyzeOpenPanel(code, file, {
+          security: options.security,
+          bestPractices: options.bestPractices,
+        });
+        break;
+      default:
+        // Skip unsupported file types
+        continue;
+    }
+
+    if (results.length > 0) {
+      summary.results.set(file, results);
+    }
+
+    // Update counts
+    for (const result of results) {
+      switch (result.severity) {
+        case 'error': summary.errors++; break;
+        case 'warning': summary.warnings++; break;
+        case 'info': summary.infos++; break;
+      }
+    }
+  }
+
+  return summary;
+}
+
+// =============================================================================
+// Output Formatting
+// =============================================================================
+
+/**
+ * Output results in the specified format
+ */
+function outputResults(summary: LintSummary, format: OutputFormat): void {
+  switch (format) {
+    case 'json':
+      outputJson(summary);
+      break;
+    case 'sarif':
+      outputSarif(summary);
+      break;
+    case 'text':
+    default:
+      outputText(summary);
+      break;
+  }
+}
+
+/**
+ * Human-readable text output (like ESLint)
+ */
+function outputText(summary: LintSummary): void {
+  const cwd = process.cwd();
+
+  if (summary.results.size === 0) {
+    console.error(`\n  ✓ ${summary.filesChecked} files checked, no issues found.\n`);
+    return;
+  }
+
+  for (const [file, results] of summary.results) {
+    const relPath = relative(cwd, file);
+    console.error(`\n  ${relPath}`);
+
+    for (const result of results) {
+      const severityLabel = formatSeverity(result.severity);
+      console.error(
+        `    L${result.line}:${result.column}  ${severityLabel}  ${result.message}  ${result.ruleId}`
+      );
+    }
+  }
+
+  const total = summary.errors + summary.warnings + summary.infos;
+  const parts: string[] = [];
+  if (summary.errors > 0) parts.push(`${summary.errors} error${summary.errors !== 1 ? 's' : ''}`);
+  if (summary.warnings > 0) parts.push(`${summary.warnings} warning${summary.warnings !== 1 ? 's' : ''}`);
+  if (summary.infos > 0) parts.push(`${summary.infos} info`);
+
+  console.error(`\n  ${total} problem${total !== 1 ? 's' : ''} (${parts.join(', ')})\n`);
+}
+
+/**
+ * Format severity label for text output
+ */
+function formatSeverity(severity: Severity): string {
+  switch (severity) {
+    case 'error': return 'error  ';
+    case 'warning': return 'warning';
+    case 'info': return 'info   ';
+  }
+}
+
+/**
+ * JSON output
+ */
+function outputJson(summary: LintSummary): void {
+  const output = {
+    filesChecked: summary.filesChecked,
+    errors: summary.errors,
+    warnings: summary.warnings,
+    infos: summary.infos,
+    results: Object.fromEntries(summary.results),
+  };
+
+  // JSON goes to stdout for piping
+  process.stdout.write(JSON.stringify(output, null, 2) + '\n');
+}
+
+/**
+ * SARIF output (GitHub Code Scanning compatible)
+ */
+function outputSarif(summary: LintSummary): void {
+  const runs = [{
+    tool: {
+      driver: {
+        name: 'hostinglint',
+        version: '0.1.0',
+        informationUri: 'https://github.com/Stdubic/hostinglint',
+        rules: [] as Array<{ id: string; shortDescription: { text: string }; defaultConfiguration: { level: string } }>,
+      },
+    },
+    results: [] as Array<{
+      ruleId: string;
+      level: string;
+      message: { text: string };
+      locations: Array<{
+        physicalLocation: {
+          artifactLocation: { uri: string };
+          region: { startLine: number; startColumn: number };
+        };
+      }>;
+    }>,
+  }];
+
+  const seenRules = new Set<string>();
+
+  for (const [file, results] of summary.results) {
+    for (const result of results) {
+      // Add rule definition if not seen
+      if (!seenRules.has(result.ruleId)) {
+        seenRules.add(result.ruleId);
+        runs[0].tool.driver.rules.push({
+          id: result.ruleId,
+          shortDescription: { text: result.message },
+          defaultConfiguration: {
+            level: result.severity === 'info' ? 'note' : result.severity,
+          },
+        });
+      }
+
+      runs[0].results.push({
+        ruleId: result.ruleId,
+        level: result.severity === 'info' ? 'note' : result.severity,
+        message: { text: result.message },
+        locations: [{
+          physicalLocation: {
+            artifactLocation: { uri: relative(process.cwd(), file) },
+            region: {
+              startLine: result.line,
+              startColumn: result.column,
+            },
+          },
+        }],
+      });
+    }
+  }
+
+  const sarif = {
+    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+    version: '2.1.0',
+    runs,
+  };
+
+  // SARIF goes to stdout for piping
+  process.stdout.write(JSON.stringify(sarif, null, 2) + '\n');
+}

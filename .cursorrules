@@ -1,0 +1,61 @@
+# HostingLint - Cursor AI Rules
+
+## Project Overview
+HostingLint is an open-source static analysis toolkit for hosting control panel modules.
+Built with TypeScript 5, Node.js 20, npm workspaces monorepo.
+See CLAUDE.md for full project context.
+
+## Code Style
+
+### TypeScript
+- Strict mode enabled — avoid `any`, use proper types
+- Use `interface` for object shapes, `type` for unions/literals
+- Use `.js` extension in relative import paths (Node16 module resolution)
+- Export types from dedicated type files
+- Prefer `const` over `let`, never use `var`
+- All functions should have JSDoc comments
+
+### File Structure
+- Analyzers in `packages/core/src/analyzers/{platform}/`
+- Rules in `packages/core/src/rules/`
+- Types in `packages/core/src/types.ts`
+- CLI in `packages/cli/src/cli.ts`
+- Tests mirror source structure in `packages/*/tests/`
+
+## Rule Development
+
+### Adding a New Rule
+1. Define the rule in `packages/core/src/rules/index.ts`
+2. Follow the `Rule` interface from `types.ts`
+3. Add to the appropriate platform array (`phpRules`, `perlRules`, `openpanelRules`)
+4. Rule ID format: `{platform}-{category}-{name}` (e.g., `whmcs-deprecated`, `perl-security-taint`)
+5. Write tests in `packages/core/tests/analyzers/{platform}.test.ts`
+6. Test both positive (detection) and negative (no false positive) cases
+
+### Rule Implementation
+- Rules are pure functions: `(code: string, filePath: string) => LintResult[]`
+- Use regex pattern matching — no runtime execution
+- Always provide `line` and `column` numbers
+- Include a `fix` suggestion when possible
+- Never throw — return empty array if no issues found
+
+## Testing
+- Framework: Vitest with globals
+- Test files: `packages/*/tests/**/*.test.ts`
+- Run: `npm test`
+- Use `describe`/`it`/`expect` pattern
+- Test examples in `examples/` directory
+
+## Security Rules
+- NEVER execute analyzed code
+- NEVER require PHP or Perl runtime
+- All analysis is string-based (regex matching)
+- File system access is read-only
+
+## Do NOT
+- Do not add React or any frontend dependencies
+- Do not add unnecessary dependencies
+- Do not use `console.log` in library code (only in CLI)
+- Do not execute or eval user-provided code
+- Do not commit .env files or secrets
+- Do not skip TypeScript types

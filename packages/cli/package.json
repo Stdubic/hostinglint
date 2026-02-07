@@ -1,0 +1,34 @@
+{
+  "name": "hostinglint",
+  "version": "0.1.0",
+  "description": "CLI for HostingLint - validate WHMCS, cPanel, and OpenPanel modules",
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "bin": {
+    "hostinglint": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "whmcs",
+    "cpanel",
+    "openpanel",
+    "hosting",
+    "lint",
+    "cli"
+  ],
+  "author": "Stdubic",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@hostinglint/core": "*",
+    "commander": "^13"
+  }
+}

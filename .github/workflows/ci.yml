@@ -1,0 +1,202 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'release/**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # Install & Cache Dependencies
+  # ============================================================================
+  install:
+    name: Install
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Cache node_modules
+        id: cache-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.cache-modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+  # ============================================================================
+  # Lint
+  # ============================================================================
+  lint:
+    name: Lint
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Run ESLint (strict)
+        run: npm run lint:ci
+
+  # ============================================================================
+  # Type Check
+  # ============================================================================
+  typecheck:
+    name: Type Check
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: TypeScript type check
+        run: npm run typecheck
+
+  # ============================================================================
+  # Tests
+  # ============================================================================
+  test:
+    name: Test
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Run tests with coverage
+        run: npm run test:ci
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "### Coverage Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
+            node -e "
+              const c = require('./coverage/coverage-summary.json').total;
+              const fmt = (v) => v.pct + '%';
+              console.log('| Statements | ' + fmt(c.statements) + ' |');
+              console.log('| Branches | ' + fmt(c.branches) + ' |');
+              console.log('| Functions | ' + fmt(c.functions) + ' |');
+              console.log('| Lines | ' + fmt(c.lines) + ' |');
+            " >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================================================
+  # Build
+  # ============================================================================
+  build:
+    name: Build
+    needs: install
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Build all packages
+        run: npm run build
+
+  # ============================================================================
+  # Quality Gate (all checks must pass)
+  # ============================================================================
+  quality-gate:
+    name: Quality Gate
+    needs: [lint, typecheck, test, build]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          if [ "${{ needs.lint.result }}" != "success" ]; then
+            echo "Lint failed"
+            exit 1
+          fi
+          if [ "${{ needs.typecheck.result }}" != "success" ]; then
+            echo "Type check failed"
+            exit 1
+          fi
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "Tests failed"
+            exit 1
+          fi
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "Build failed"
+            exit 1
+          fi
+          echo "All quality checks passed"

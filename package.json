@@ -1,0 +1,36 @@
+{
+  "name": "hostinglint-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Static analysis toolkit for hosting control panel modules",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w packages/core && npm run build -w packages/cli",
+    "lint": "eslint .",
+    "lint:ci": "eslint --max-warnings 0 .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ci": "vitest run --coverage --reporter=default --reporter=json --outputFile=test-results.json",
+    "validate": "npm run lint:ci && npm run typecheck && npm run test:ci && npm run build",
+    "precommit": "npm run lint && npm run typecheck && npm run test",
+    "clean": "rm -rf packages/*/dist"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "author": "Stdubic",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.2.1",
+    "@typescript-eslint/eslint-plugin": "^8",
+    "@typescript-eslint/parser": "^8",
+    "@vitest/coverage-v8": "^3",
+    "eslint": "^9",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}
