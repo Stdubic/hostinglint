@@ -16,12 +16,13 @@ export const openpanelApiVersioning: Rule = {
     const { code, filePath } = context;
     const results: LintResult[] = [];
 
-    const isManifest = filePath.endsWith('.json') || filePath.includes('manifest');
+    // Only check manifest.json or extension.json files
+    const isManifest = filePath.includes('manifest.json') || filePath.includes('extension.json');
     if (!isManifest) return results;
 
     try {
       const parsed = JSON.parse(code);
-      if (!parsed.apiVersion && !parsed.api_version && !parsed.version) {
+      if (!parsed.apiVersion && !parsed.api_version) {
         results.push({
           file: filePath,
           line: 1,
