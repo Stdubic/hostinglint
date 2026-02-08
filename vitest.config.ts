@@ -17,7 +17,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@hostinglint/core': path.resolve(__dirname, './packages/core/src'),
+      '@hostinglint/core': path.resolve(__dirname, './packages/core/src/index.ts'),
     },
   },
 });

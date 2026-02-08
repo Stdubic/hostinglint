@@ -1,8 +1,10 @@
 // HostingLint PHP Analyzer
 // Validates WHMCS modules (PHP) for syntax, compatibility, security, and best practices
 
-import type { LintResult, PhpAnalyzerOptions, Rule } from '../../types.js';
-import { phpRules } from '../../rules/index.js';
+import type { PhpAnalyzerOptions, Rule } from '../../types.js';
+import { phpRules } from '../../rules/php/index.js';
+import { crossPlatformRules } from '../../rules/common/index.js';
+import { createAnalyzer, isPhpVersionAtLeast } from '../base.js';
 
 /**
  * Default PHP analyzer options
@@ -15,6 +17,17 @@ const DEFAULT_OPTIONS: PhpAnalyzerOptions = {
 };
 
 /**
+ * PHP version filter: only run version-specific rules if targeting that version or higher
+ */
+function phpVersionFilter(rule: Rule, options: PhpAnalyzerOptions): boolean {
+  const targetPhpVersion = options.phpVersion ?? '8.3';
+  if (rule.minPhpVersion && !isPhpVersionAtLeast(targetPhpVersion, rule.minPhpVersion)) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Analyze PHP code for WHMCS module issues
  *
  * @param code - PHP source code to analyze
@@ -22,37 +35,9 @@ const DEFAULT_OPTIONS: PhpAnalyzerOptions = {
  * @param options - PHP analyzer options
  * @returns Array of lint results
  */
-export function analyzePhp(
-  code: string,
-  filePath: string,
-  options: PhpAnalyzerOptions = {}
-): LintResult[] {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
-  const results: LintResult[] = [];
-
-  // Get applicable rules
-  const rules = getApplicableRules(opts);
-
-  // Run each rule against the code
-  for (const rule of rules) {
-    const findings = rule.check(code, filePath);
-    results.push(...findings);
-  }
-
-  // Sort by line number
-  results.sort((a, b) => a.line - b.line || a.column - b.column);
-
-  return results;
-}
-
-/**
- * Get rules applicable to the current options
- */
-function getApplicableRules(options: PhpAnalyzerOptions): Rule[] {
-  return phpRules.filter((rule) => {
-    // Filter by category based on options
-    if (rule.category === 'security' && !options.security) return false;
-    if (rule.category === 'best-practice' && !options.bestPractices) return false;
-    return true;
-  });
-}
+export const analyzePhp = createAnalyzer<PhpAnalyzerOptions>(
+  phpRules,
+  crossPlatformRules,
+  DEFAULT_OPTIONS,
+  phpVersionFilter,
+);

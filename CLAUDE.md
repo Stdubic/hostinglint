@@ -9,7 +9,7 @@ Think of it as "ESLint for hosting modules."
 - **License:** MIT
 - **Language:** TypeScript (Node.js)
 - **Architecture:** npm workspace monorepo (`packages/core` + `packages/cli`)
-- **Target grant:** NLnet NGI Zero Commons Fund (April 1, 2026 deadline)
+- **Target grant:** NLnet NGI Zero Commons Fund (next deadline: April 1, 2026)
 - **Related project:** ModuleForge (proprietary SaaS) uses @hostinglint/core as a dependency
 
 ## Tech Stack

@@ -31,5 +31,14 @@
   "license": "MIT",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Stdubic/hostinglint.git",
+    "directory": "packages/core"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://nlnet.nl/commonsfund/"
   }
 }

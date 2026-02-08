@@ -19,17 +19,34 @@ export type OutputFormat = 'text' | 'json' | 'sarif';
 /**
  * PHP version targets for compatibility checking
  */
-export type PhpVersion = '7.4' | '8.0' | '8.1' | '8.2' | '8.3';
+export type PhpVersion = '7.4' | '8.0' | '8.1' | '8.2' | '8.3' | '8.4';
 
 /**
  * WHMCS version targets
  */
-export type WhmcsVersion = '8.11' | '8.12' | '8.13';
+export type WhmcsVersion = '8.11' | '8.12' | '8.13' | '8.14';
 
 /**
  * cPanel version targets
  */
-export type CpanelVersion = 'v132' | 'v133' | 'v134';
+export type CpanelVersion = 'v132' | 'v133' | 'v134' | 'v135';
+
+/**
+ * A machine-applicable fix action for auto-fix support
+ */
+export interface FixAction {
+  /** Range of code to replace */
+  range: {
+    startLine: number;
+    startCol: number;
+    endLine: number;
+    endCol: number;
+  };
+  /** Replacement text */
+  replacement: string;
+  /** Human-readable description of the fix */
+  description: string;
+}
 
 /**
  * A single lint finding
@@ -49,8 +66,31 @@ export interface LintResult {
   severity: Severity;
   /** Category for grouping (e.g., 'syntax', 'compatibility', 'security', 'best-practice') */
   category: string;
-  /** Optional suggested fix */
+  /** Optional suggested fix (text description) */
   fix?: string;
+  /** Optional machine-applicable fix action for auto-fix */
+  fixAction?: FixAction;
+}
+
+/**
+ * Context passed to rule check functions
+ * Provides access to code, file info, configuration, and target versions
+ */
+export interface RuleContext {
+  /** Source code content */
+  code: string;
+  /** File path being analyzed */
+  filePath: string;
+  /** Pre-split lines of code (for convenience) */
+  lines: string[];
+  /** Active configuration */
+  config: HostingLintConfig;
+  /** Target PHP version (when applicable) */
+  phpVersion?: PhpVersion;
+  /** Target WHMCS version (when applicable) */
+  whmcsVersion?: WhmcsVersion;
+  /** Target cPanel version (when applicable) */
+  cpanelVersion?: CpanelVersion;
 }
 
 /**
@@ -119,8 +159,14 @@ export interface Rule {
   category: string;
   /** Platform this rule applies to */
   platform: Platform | 'all';
-  /** Check function: receives code and file path, returns findings */
-  check: (code: string, filePath: string) => LintResult[];
+  /** Check function: receives rule context, returns findings */
+  check: (context: RuleContext) => LintResult[];
+  /** Minimum PHP version where this rule applies (e.g., '8.0' means rule fires for PHP >= 8.0) */
+  minPhpVersion?: PhpVersion;
+  /** Minimum WHMCS version where this rule applies */
+  minWhmcsVersion?: WhmcsVersion;
+  /** Minimum cPanel version where this rule applies */
+  minCpanelVersion?: CpanelVersion;
 }
 
 /**
@@ -137,4 +183,43 @@ export interface LintSummary {
   infos: number;
   /** Results grouped by file */
   results: Map<string, LintResult[]>;
+}
+
+/**
+ * Rule severity override: 'off' disables the rule, or override severity
+ */
+export type RuleSeverityOverride = 'off' | 'error' | 'warning' | 'info';
+
+/**
+ * Configuration file structure (.hostinglintrc.json)
+ */
+export interface HostingLintConfig {
+  /** Rule overrides: map of rule ID to severity or 'off' */
+  rules?: Record<string, RuleSeverityOverride>;
+  /** Target PHP version */
+  phpVersion?: PhpVersion;
+  /** Target WHMCS version */
+  whmcsVersion?: WhmcsVersion;
+  /** Target cPanel version */
+  cpanelVersion?: CpanelVersion;
+  /** Glob patterns for files/directories to ignore */
+  ignore?: string[];
+  /** Enable/disable security rules globally */
+  security?: boolean;
+  /** Enable/disable best practice rules globally */
+  bestPractices?: boolean;
+  /** Plugin package names or local paths */
+  plugins?: string[];
+  /** Preset configuration name */
+  preset?: 'recommended' | 'strict' | 'security-only';
+}
+
+/**
+ * Plugin interface for extending HostingLint with custom rules
+ */
+export interface HostingLintPlugin {
+  /** Plugin display name */
+  name: string;
+  /** Rules provided by this plugin */
+  rules: Rule[];
 }

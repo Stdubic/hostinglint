@@ -10,24 +10,26 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  NODE_VERSION: '20'
-
 jobs:
   # ============================================================================
   # Install & Cache Dependencies
   # ============================================================================
   install:
-    name: Install
-    runs-on: ubuntu-latest
+    name: Install (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node-version: ['20', '22']
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Cache node_modules
@@ -35,7 +37,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: modules-${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.cache-modules.outputs.cache-hit != 'true'
@@ -55,14 +57,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
 
       - name: Restore node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: modules-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
 
       - name: Run ESLint (strict)
         run: npm run lint:ci
@@ -81,54 +83,80 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
 
       - name: Restore node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: modules-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
 
       - name: TypeScript type check
         run: npm run typecheck
 
   # ============================================================================
-  # Tests
+  # Tests (Matrix: OS × Node version)
   # ============================================================================
   test:
-    name: Test
+    name: Test (${{ matrix.os }}, Node ${{ matrix.node-version }})
     needs: install
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node-version: ['20', '22']
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Restore node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: modules-${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('package-lock.json') }}
 
       - name: Run tests with coverage
         run: npm run test:ci
 
       - name: Upload coverage report
-        if: always()
+        if: always() && matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/
           retention-days: 14
 
+      - name: Enforce coverage threshold (85%)
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "
+              const c = require('./coverage/coverage-summary.json').total;
+              const threshold = 85;
+              const metrics = ['statements', 'branches', 'functions', 'lines'];
+              let failed = false;
+              for (const m of metrics) {
+                if (c[m].pct < threshold) {
+                  console.error('Coverage for ' + m + ' (' + c[m].pct + '%) is below threshold (' + threshold + '%)');
+                  failed = true;
+                }
+              }
+              if (failed) process.exit(1);
+              console.log('All coverage metrics above ' + threshold + '%');
+            "
+          fi
+
       - name: Coverage summary
-        if: always()
+        if: always() && matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
         run: |
           if [ -f coverage/coverage-summary.json ]; then
             echo "### Coverage Summary" >> $GITHUB_STEP_SUMMARY
@@ -159,14 +187,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
 
       - name: Restore node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: modules-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
 
       - name: Build all packages
         run: npm run build

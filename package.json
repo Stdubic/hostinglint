@@ -24,6 +24,14 @@
   },
   "author": "Stdubic",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Stdubic/hostinglint.git"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://nlnet.nl/commonsfund/"
+  },
   "devDependencies": {
     "@types/node": "^25.2.1",
     "@typescript-eslint/eslint-plugin": "^8",

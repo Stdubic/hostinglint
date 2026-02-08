@@ -33,9 +33,14 @@ hostinglint check ./my-module/
 
 ## Features
 
+- **28 lint rules** across 3 platforms (WHMCS, cPanel, OpenPanel)
 - **WHMCS module analysis** — PHP 7.4-8.3 compatibility, WHMCS 8.11-8.13 API rules, security checks
 - **cPanel plugin analysis** — Perl 5.36+, cPanel v132-v134 compatibility, taint detection
-- **OpenPanel extension analysis** — Dockerfile best practices, OpenCLI compatibility
+- **OpenPanel extension analysis** — Dockerfile best practices, Docker security, OpenCLI validation
+- **Version-aware rules** — Rules adapt based on target PHP/WHMCS/cPanel version
+- **Configuration file** — `.hostinglintrc.json` for project-specific settings
+- **Inline disabling** — Suppress rules via code comments
+- **Watch mode** — `--watch` flag for automatic re-analysis on file changes
 - **Multiple output formats** — Human-readable text, JSON, SARIF (GitHub Code Scanning)
 - **Zero runtime dependencies** — Works on code strings, no PHP or Perl runtime needed
 - **CI/CD ready** — GitHub Actions integration via SARIF output
@@ -94,28 +99,55 @@ const opResults = analyzeOpenPanel(dockerfile, 'Dockerfile');
 
 ## Rules
 
-### PHP / WHMCS
+28 rules across 3 platforms. See [docs/RULES.md](docs/RULES.md) for full documentation.
+
+### PHP / WHMCS (13 rules)
 
 | Rule ID | Severity | Description |
 |---------|----------|-------------|
 | `php-compat-each` | error | Detects `each()` usage (removed in PHP 8.0) |
+| `php-compat-create-function` | error | Detects `create_function()` (removed in PHP 8.0) |
+| `php-compat-mysql-functions` | error | Detects `mysql_*` functions (removed in PHP 7.0) |
+| `php-compat-curly-braces` | error | Curly brace array access (deprecated PHP 7.4) |
 | `whmcs-metadata` | warning | Missing MetaData() function (required WHMCS 8.0+) |
-| `security-sql-injection` | error | SQL injection via unsanitized input |
 | `whmcs-deprecated` | warning | Usage of deprecated WHMCS functions |
+| `whmcs-config-function` | warning | Missing _Config() in provisioning modules |
 | `whmcs-hook-error-handling` | warning | Hook callbacks without try/catch |
+| `whmcs-return-format` | warning | Provisioning functions with wrong return format |
+| `whmcs-license-check` | info | Missing license validation |
+| `security-sql-injection` | error | SQL injection via unsanitized input |
+| `security-xss` | error | XSS via unescaped output |
+| `security-path-traversal` | error | Path traversal via user input in file ops |
 
-### Perl / cPanel
+### Perl / cPanel (7 rules)
 
 | Rule ID | Severity | Description |
 |---------|----------|-------------|
 | `perl-strict-warnings` | warning | Missing `use strict` / `use warnings` |
 | `perl-security-taint` | error | Untainted input in system/exec calls |
+| `perl-cpanel-api-version` | warning | Deprecated cPanel API1 usage |
+| `perl-file-permissions` | warning | Insecure file permission modes |
+| `perl-error-handling` | warning | Critical operations without eval/die |
+| `perl-deprecated-modules` | warning | Deprecated Perl modules (CGI.pm, etc.) |
+| `perl-input-validation` | warning | CGI params used without validation |
 
-### OpenPanel
+### OpenPanel (5 rules)
 
 | Rule ID | Severity | Description |
 |---------|----------|-------------|
 | `openpanel-dockerfile` | warning | Dockerfile best practices (USER, HEALTHCHECK) |
+| `openpanel-api-versioning` | warning | Missing API version in manifest |
+| `openpanel-resource-limits` | warning | Docker containers without resource limits |
+| `openpanel-security-capabilities` | error | Excessive Docker capabilities |
+| `openpanel-cli-validation` | warning | CLI scripts without input validation |
+
+### Cross-Platform (3 rules)
+
+| Rule ID | Severity | Description |
+|---------|----------|-------------|
+| `security-hardcoded-credentials` | error | Hardcoded passwords/API keys |
+| `security-eval-usage` | warning | Usage of eval() |
+| `best-practice-todo-fixme` | info | TODO/FIXME comments |
 
 ## Development
 
@@ -152,9 +184,43 @@ HostingLint is an npm workspace monorepo:
 
 Analysis is regex-based pattern matching on code strings. No PHP or Perl runtime is required, making it safe and portable.
 
+## Configuration
+
+Create a `.hostinglintrc.json` in your project root:
+
+```json
+{
+  "rules": {
+    "whmcs-license-check": "off",
+    "security-sql-injection": "error"
+  },
+  "phpVersion": "8.1",
+  "ignore": ["vendor/**", "node_modules/**"]
+}
+```
+
+### Inline Disabling
+
+```php
+// hostinglint-disable-next-line rule-id
+$result = legacy_function();
+
+// hostinglint-disable rule-id
+// ... code ...
+// hostinglint-enable rule-id
+```
+
 ## Contributing
 
-Contributions are welcome! See the rule development guide in `.cursor/rules/hostinglint.mdc` for how to add new rules.
+Contributions are welcome! See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for how to get started.
+
+## Funding
+
+HostingLint is an open-source project seeking funding through the [NLnet NGI Zero Commons Fund](https://nlnet.nl/commonsfund/) to accelerate development. If you'd like to support the project, consider:
+
+- Contributing code or documentation
+- Reporting bugs and suggesting features
+- Spreading the word in hosting communities
 
 ## License
 

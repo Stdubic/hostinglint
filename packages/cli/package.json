@@ -27,6 +27,15 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Stdubic/hostinglint.git",
+    "directory": "packages/cli"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://nlnet.nl/commonsfund/"
+  },
   "dependencies": {
     "@hostinglint/core": "*",
     "commander": "^13"

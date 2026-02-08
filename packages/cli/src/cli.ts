@@ -3,12 +3,16 @@
 // Usage: hostinglint check <path> [options]
 
 import { Command } from 'commander';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync, watch } from 'node:fs';
 import { resolve, extname, relative } from 'node:path';
 import {
   analyzePhp,
   analyzePerl,
   analyzeOpenPanel,
+  findConfig,
+  shouldIgnore,
+  applyFixes,
+  getFixableSummary,
 } from '@hostinglint/core';
 import type {
   LintResult,
@@ -17,6 +21,8 @@ import type {
   Severity,
   OutputFormat,
   LintSummary,
+  HostingLintConfig,
+  RuleSeverityOverride,
 } from '@hostinglint/core';
 
 const program = new Command();
@@ -33,23 +39,88 @@ program
   .option('-p, --platform <platform>', 'Target platform: whmcs, cpanel, openpanel (auto-detected if not specified)')
   .option('--php-version <version>', 'Target PHP version for compatibility checks (default: 8.3)', '8.3')
   .option('-f, --format <format>', 'Output format: text, json, sarif (default: text)', 'text')
+  .option('-c, --config <path>', 'Path to configuration file')
+  .option('-w, --watch', 'Watch for file changes and re-run analysis')
+  .option('--fix', 'Automatically fix problems where possible')
   .option('--no-security', 'Disable security checks')
   .option('--no-best-practices', 'Disable best practice checks')
   .action((targetPath: string, options: CheckOptions) => {
     const resolvedPath = resolve(targetPath);
-    const files = collectFiles(resolvedPath);
 
-    if (files.length === 0) {
-      console.error(`No supported files found in: ${targetPath}`);
-      process.exit(1);
-    }
+    // Load configuration file
+    const config = options.config
+      ? findConfig(resolve(options.config))
+      : findConfig(resolvedPath);
 
-    const summary = analyzeFiles(files, options);
-    outputResults(summary, options.format as OutputFormat);
+    // Merge CLI options with config (CLI takes precedence)
+    const mergedOptions = mergeCliWithConfig(options, config);
 
-    // Exit with error code if there are errors
-    if (summary.errors > 0) {
-      process.exit(1);
+    /**
+     * Run a single analysis pass
+     */
+    const runAnalysis = (): LintSummary => {
+      const files = collectFiles(resolvedPath, config.ignore ?? []);
+
+      if (files.length === 0) {
+        console.error(`No supported files found in: ${targetPath}`);
+        if (!options.watch) process.exit(1);
+        return { filesChecked: 0, errors: 0, warnings: 0, infos: 0, results: new Map() };
+      }
+
+      const summary = analyzeFiles(files, mergedOptions, config);
+
+      // Auto-fix mode
+      if (options.fix) {
+        const fixedCount = applyAutoFixes(summary);
+        if (fixedCount > 0) {
+          console.error(`\n  Fixed ${fixedCount} problem${fixedCount !== 1 ? 's' : ''} automatically.\n`);
+          // Re-run analysis after fixes to show remaining issues
+          const postFixSummary = analyzeFiles(files, mergedOptions, config);
+          outputResults(postFixSummary, mergedOptions.format as OutputFormat);
+          return postFixSummary;
+        }
+      }
+
+      outputResults(summary, mergedOptions.format as OutputFormat);
+      return summary;
+    };
+
+    // Initial run
+    const summary = runAnalysis();
+
+    if (options.watch) {
+      console.error('\n  Watching for file changes... (press Ctrl+C to stop)\n');
+
+      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+      const stat = statSync(resolvedPath);
+      const watchPath = stat.isDirectory() ? resolvedPath : resolve(resolvedPath, '..');
+
+      try {
+        watch(watchPath, { recursive: true }, (_eventType, filename) => {
+          if (!filename) return;
+          const fullPath = resolve(watchPath, filename);
+
+          // Only re-run for supported files
+          if (!isSupportedFile(fullPath)) return;
+          if (shouldIgnore(fullPath, config.ignore ?? [])) return;
+
+          // Debounce to avoid rapid re-runs
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            console.error(`\n  File changed: ${filename}\n`);
+            runAnalysis();
+            console.error('\n  Watching for file changes... (press Ctrl+C to stop)\n');
+          }, 300);
+        });
+      } catch {
+        console.error('Watch mode is not supported on this platform. Running single pass only.');
+        if (summary.errors > 0) process.exit(1);
+      }
+    } else {
+      // Exit with error code if there are errors
+      if (summary.errors > 0) {
+        process.exit(1);
+      }
     }
   });
 
@@ -63,8 +134,23 @@ interface CheckOptions {
   platform?: Platform;
   phpVersion: string;
   format: string;
+  config?: string;
+  watch?: boolean;
+  fix?: boolean;
   security: boolean;
   bestPractices: boolean;
+}
+
+/**
+ * Merge CLI options with loaded config (CLI takes precedence)
+ */
+function mergeCliWithConfig(options: CheckOptions, config: HostingLintConfig): CheckOptions {
+  return {
+    ...options,
+    phpVersion: options.phpVersion || config.phpVersion || '8.3',
+    security: options.security !== false ? (config.security ?? true) : false,
+    bestPractices: options.bestPractices !== false ? (config.bestPractices ?? true) : false,
+  };
 }
 
 // =============================================================================
@@ -74,15 +160,16 @@ interface CheckOptions {
 /**
  * Collect all supported files from a path (file or directory)
  */
-function collectFiles(targetPath: string): string[] {
+function collectFiles(targetPath: string, ignorePatterns: string[] = []): string[] {
   const stat = statSync(targetPath);
 
   if (stat.isFile()) {
+    if (shouldIgnore(targetPath, ignorePatterns)) return [];
     return isSupportedFile(targetPath) ? [targetPath] : [];
   }
 
   if (stat.isDirectory()) {
-    return walkDirectory(targetPath);
+    return walkDirectory(targetPath, ignorePatterns);
   }
 
   return [];
@@ -91,7 +178,7 @@ function collectFiles(targetPath: string): string[] {
 /**
  * Recursively walk a directory and collect supported files
  */
-function walkDirectory(dir: string): string[] {
+function walkDirectory(dir: string, ignorePatterns: string[] = []): string[] {
   const files: string[] = [];
   const entries = readdirSync(dir);
 
@@ -102,10 +189,13 @@ function walkDirectory(dir: string): string[] {
     }
 
     const fullPath = resolve(dir, entry);
+
+    if (shouldIgnore(fullPath, ignorePatterns)) continue;
+
     const stat = statSync(fullPath);
 
     if (stat.isDirectory()) {
-      files.push(...walkDirectory(fullPath));
+      files.push(...walkDirectory(fullPath, ignorePatterns));
     } else if (isSupportedFile(fullPath)) {
       files.push(fullPath);
     }
@@ -152,7 +242,7 @@ function detectPlatform(filePath: string): Platform | null {
 /**
  * Analyze all collected files
  */
-function analyzeFiles(files: string[], options: CheckOptions): LintSummary {
+function analyzeFiles(files: string[], options: CheckOptions, config: HostingLintConfig): LintSummary {
   const summary: LintSummary = {
     filesChecked: files.length,
     errors: 0,
@@ -191,6 +281,9 @@ function analyzeFiles(files: string[], options: CheckOptions): LintSummary {
         continue;
     }
 
+    // Apply rule overrides from config
+    results = applyRuleOverrides(results, config.rules ?? {});
+
     if (results.length > 0) {
       summary.results.set(file, results);
     }
@@ -206,6 +299,57 @@ function analyzeFiles(files: string[], options: CheckOptions): LintSummary {
   }
 
   return summary;
+}
+
+/**
+ * Apply rule severity overrides from config
+ */
+function applyRuleOverrides(
+  results: LintResult[],
+  ruleOverrides: Record<string, RuleSeverityOverride>
+): LintResult[] {
+  if (Object.keys(ruleOverrides).length === 0) return results;
+
+  return results
+    .filter((result) => {
+      const override = ruleOverrides[result.ruleId];
+      return override !== 'off';
+    })
+    .map((result) => {
+      const override = ruleOverrides[result.ruleId];
+      if (override && override !== 'off') {
+        return { ...result, severity: override };
+      }
+      return result;
+    });
+}
+
+// =============================================================================
+// Auto-Fix
+// =============================================================================
+
+/**
+ * Apply auto-fixes for all files in the summary
+ * Returns total number of fixes applied
+ */
+function applyAutoFixes(summary: LintSummary): number {
+  let totalFixed = 0;
+
+  for (const [file, results] of summary.results) {
+    const fixSummary = getFixableSummary(results);
+    if (fixSummary.fixable === 0) continue;
+
+    const code = readFileSync(file, 'utf-8');
+    const fixResult = applyFixes(code, results);
+
+    if (fixResult.fixesApplied > 0) {
+      writeFileSync(file, fixResult.code, 'utf-8');
+      totalFixed += fixResult.fixesApplied;
+      console.error(`  Fixed ${fixResult.fixesApplied} issue${fixResult.fixesApplied !== 1 ? 's' : ''} in ${relative(process.cwd(), file)}`);
+    }
+  }
+
+  return totalFixed;
 }
 
 // =============================================================================
@@ -247,8 +391,9 @@ function outputText(summary: LintSummary): void {
 
     for (const result of results) {
       const severityLabel = formatSeverity(result.severity);
+      const fixMarker = result.fixAction ? ' 🔧' : '';
       console.error(
-        `    L${result.line}:${result.column}  ${severityLabel}  ${result.message}  ${result.ruleId}`
+        `    L${result.line}:${result.column}  ${severityLabel}  ${result.message}  ${result.ruleId}${fixMarker}`
       );
     }
   }
@@ -259,7 +404,12 @@ function outputText(summary: LintSummary): void {
   if (summary.warnings > 0) parts.push(`${summary.warnings} warning${summary.warnings !== 1 ? 's' : ''}`);
   if (summary.infos > 0) parts.push(`${summary.infos} info`);
 
-  console.error(`\n  ${total} problem${total !== 1 ? 's' : ''} (${parts.join(', ')})\n`);
+  // Show fixable count
+  const allResults = Array.from(summary.results.values()).flat();
+  const fixable = allResults.filter((r) => r.fixAction).length;
+  const fixableMsg = fixable > 0 ? `  ${fixable} fixable with --fix` : '';
+
+  console.error(`\n  ${total} problem${total !== 1 ? 's' : ''} (${parts.join(', ')})${fixableMsg}\n`);
 }
 
 /**

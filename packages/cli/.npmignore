@@ -1,0 +1,6 @@
+src/
+tests/
+tsconfig.build.json
+tsconfig.build.tsbuildinfo
+*.test.ts
+*.test.js
