@@ -122,6 +122,7 @@ No existing static analysis tool provides domain-specific rules for hosting cont
 ## Submission Checklist
 
 - [ ] Review the [Guide for Applicants](https://nlnet.nl/commonsfund/guideforapplicants/)
+- [ ] Review the [52-Day Action Plan](./NLNET-ACTION-PLAN.md)
 - [ ] Prepare this proposal text for the online form
 - [ ] Attach budget breakdown as PDF
 - [ ] Attach architecture document

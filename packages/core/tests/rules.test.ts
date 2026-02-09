@@ -8,7 +8,9 @@ import {
   crossPlatformRules,
   getRulesByPlatform,
   getRuleById,
+  RuleRegistry,
 } from '@hostinglint/core';
+import type { Rule } from '@hostinglint/core';
 
 describe('Rule Registry', () => {
   it('should have PHP rules', () => {
@@ -112,6 +114,65 @@ describe('Rule Registry', () => {
       for (const rule of crossPlatformRules) {
         expect(rule.platform).toBe('all');
       }
+    });
+  });
+  describe('RuleRegistry Class', () => {
+    it('should allow registering and removing rules', () => {
+      const registry = new RuleRegistry();
+      const mockRule = {
+        id: 'test-rule',
+        description: 'test',
+        severity: 'info',
+        category: 'best-practice',
+        platform: 'all',
+        check: () => []
+      } as Rule;
+      
+      registry.register(mockRule);
+      expect(registry.has('test-rule')).toBe(true);
+      expect(registry.size).toBe(1);
+      
+      registry.remove('test-rule');
+      expect(registry.has('test-rule')).toBe(false);
+      expect(registry.size).toBe(0);
+    });
+
+    it('should throw error when registering duplicate rule ID', () => {
+      const registry = new RuleRegistry();
+      const mockRule = { id: 'test-rule', check: () => [] } as Rule;
+      registry.register(mockRule);
+      expect(() => registry.register(mockRule)).toThrow('already registered');
+    });
+
+    it('should support legacy rule check signature', () => {
+      const legacyRule = {
+        id: 'legacy',
+        check: (code: string, filePath: string) => [{
+          file: filePath,
+          line: 1,
+          column: 1,
+          message: 'legacy',
+          ruleId: 'legacy',
+          severity: 'info',
+          category: 'best-practice'
+        }]
+      } as unknown as Rule;
+      
+      // Explicitly set length to 2 if it's not detected (though it should be for a 2-arg function)
+      expect(legacyRule.check.length).toBe(2);
+      
+      const results = RuleRegistry.runRule(legacyRule, { code: 'test', filePath: 'test.php' });
+      expect(results).toHaveLength(1);
+      expect(results[0].message).toBe('legacy');
+    });
+
+    it('should clear all rules', () => {
+      const registry = new RuleRegistry();
+      registry.register({ id: 'r1' } as Rule);
+      registry.register({ id: 'r2' } as Rule);
+      expect(registry.size).toBe(2);
+      registry.clear();
+      expect(registry.size).toBe(0);
     });
   });
 });

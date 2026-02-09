@@ -108,8 +108,8 @@ export const perlInputValidation: Rule = {
       for (const { pattern, msg } of inputPatterns) {
         const match = line.match(pattern);
         if (match && match.index !== undefined) {
-          const contextBlock = lines.slice(i, Math.min(i + 5, lines.length)).join('\n');
-          const hasValidation = /\b(?:validate|sanitize|clean|check|verify|=~|!~)\b/.test(contextBlock);
+          const contextBlock = lines.slice(Math.max(0, i - 1), Math.min(i + 10, lines.length)).join('\n');
+          const hasValidation = /\b(?:validate|sanitize|clean|check|verify|argparse)\b/i.test(contextBlock) || (contextBlock.includes('=~') || contextBlock.includes('!~'));
           if (!hasValidation) {
             results.push({
               file: filePath,

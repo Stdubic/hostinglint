@@ -150,6 +150,65 @@ echo "Processing: $1"
       const cliResults = results.filter((r) => r.ruleId === 'openpanel-cli-validation');
       expect(cliResults).toHaveLength(0);
     });
+
+    it('should warn when python script uses sys.argv without validation', () => {
+      const code = `import sys
+print(f"Processing: {sys.argv[1]}")
+`;
+      const results = analyzeOpenPanel(code, 'cleanup.py');
+      const cliResults = results.filter((r) => r.ruleId === 'openpanel-cli-validation');
+      expect(cliResults).toHaveLength(1);
+    });
+
+    it('should not warn when python script uses argparse', () => {
+      const code = `import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("name")
+args = parser.parse_args()
+print(f"Processing: {args.name}")
+`;
+      const results = analyzeOpenPanel(code, 'cleanup.py');
+      const cliResults = results.filter((r) => r.ruleId === 'openpanel-cli-validation');
+      expect(cliResults).toHaveLength(0);
+    });
+  });
+
+  describe('API Versioning', () => {
+    it('should warn when manifest lacks API version', () => {
+      const code = `{
+  "name": "my-extension",
+  "version": "1.0.0"
+}
+`;
+      const results = analyzeOpenPanel(code, 'openpanel-manifest.json');
+      const apiResults = results.filter((r) => r.ruleId === 'openpanel-api-versioning');
+      expect(apiResults).toHaveLength(1);
+    });
+
+    it('should not warn when manifest has api_version', () => {
+      const code = `{
+  "name": "my-extension",
+  "api_version": "1.0"
+}
+`;
+      const results = analyzeOpenPanel(code, 'manifest.json');
+      const apiResults = results.filter((r) => r.ruleId === 'openpanel-api-versioning');
+      expect(apiResults).toHaveLength(0);
+    });
+
+    it('should not warn for non-manifest JSON', () => {
+      const code = `{ "foo": "bar" }`;
+      const results = analyzeOpenPanel(code, 'data.json');
+      const apiResults = results.filter((r) => r.ruleId === 'openpanel-api-versioning');
+      expect(apiResults).toHaveLength(0);
+    });
+
+    it('should handle invalid JSON in manifest', () => {
+      const code = `{ invalid: json }`;
+      const results = analyzeOpenPanel(code, 'manifest.json');
+      const apiResults = results.filter((r) => r.ruleId === 'openpanel-api-versioning');
+      expect(apiResults).toHaveLength(0);
+    });
   });
 
   describe('Options', () => {

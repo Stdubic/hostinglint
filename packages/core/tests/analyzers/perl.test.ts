@@ -222,6 +222,35 @@ my $var = "hello";
     });
   });
 
+  describe('Input validation detection', () => {
+    it('should warn when CGI param is used without validation', () => {
+      const code = `#!/usr/bin/perl
+use CGI;
+my $q = CGI->new;
+my $user = $q->param('user');
+print "Hello $user";
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const valResults = results.filter((r) => r.ruleId === 'perl-input-validation');
+      expect(valResults).toHaveLength(1);
+    });
+
+    it('should not warn when CGI param is validated', () => {
+      const code = `#!/usr/bin/perl
+use CGI;
+my $q = CGI->new;
+my $user = $q->param('user');
+# validation follows
+if ($user =~ /^[a-z]+$/) {
+    print "Hello $user";
+}
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const valResults = results.filter((r) => r.ruleId === 'perl-input-validation');
+      expect(valResults).toHaveLength(0);
+    });
+  });
+
   describe('Options', () => {
     it('should respect security option when disabled', () => {
       const code = `#!/usr/bin/perl

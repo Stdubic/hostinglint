@@ -93,7 +93,7 @@ export const openpanelCliValidation: Rule = {
         const match = lines[i].match(/\bsys\.argv\b/);
         if (match && match.index !== undefined) {
           const contextBlock = lines.slice(i, Math.min(i + 5, lines.length)).join('\n');
-          if (!contextBlock.includes('argparse') && !contextBlock.includes('try') && !contextBlock.includes('validate')) {
+          if (!/\b(?:argparse|validate|sanitize|clean|check|verify|try|=~|!~)\b/i.test(contextBlock)) {
             results.push({
               file: filePath,
               line: i + 1,

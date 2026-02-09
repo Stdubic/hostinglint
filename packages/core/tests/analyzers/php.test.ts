@@ -422,6 +422,69 @@ $char = $string{0};
     });
   });
 
+  describe('Best Practices', () => {
+    it('should detect TODO comments', () => {
+      const code = `<?php
+// TODO: Fix this
+`;
+      const results = analyzePhp(code, 'test.php');
+      const todoResults = results.filter((r) => r.ruleId === 'best-practice-todo-fixme');
+      expect(todoResults).toHaveLength(1);
+    });
+
+    it('should not flag full-page license comments if they dont have TODO', () => {
+      const code = `<?php
+/**
+ * My Module
+ * (c) 2026 Company
+ */
+`;
+      const results = analyzePhp(code, 'test.php');
+      const todoResults = results.filter((r) => r.ruleId === 'best-practice-todo-fixme');
+      expect(todoResults).toHaveLength(0);
+    });
+  });
+
+  describe('Common Security Rules', () => {
+    it('should detect hardcoded credentials', () => {
+      const code = `<?php
+$password = "secret123";
+$apiKey = 'abcdef1234567890';
+`;
+      const results = analyzePhp(code, 'test.php');
+      const credResults = results.filter((r) => r.ruleId === 'security-hardcoded-credentials');
+      expect(credResults).toHaveLength(2);
+    });
+
+    it('should ignore example credentials', () => {
+      const code = `<?php
+$password = "your_password_here";
+$apiKey = 'test_key';
+`;
+      const results = analyzePhp(code, 'test.php');
+      const credResults = results.filter((r) => r.ruleId === 'security-hardcoded-credentials');
+      expect(credResults).toHaveLength(0);
+    });
+
+    it('should detect eval() usage', () => {
+      const code = `<?php
+eval('$foo = "bar";');
+`;
+      const results = analyzePhp(code, 'test.php');
+      const evalResults = results.filter((r) => r.ruleId === 'security-eval-usage');
+      expect(evalResults).toHaveLength(1);
+    });
+
+    it('should ignore eval in comments', () => {
+      const code = `<?php
+// We should avoid using eval($code) here
+`;
+      const results = analyzePhp(code, 'test.php');
+      const evalResults = results.filter((r) => r.ruleId === 'security-eval-usage');
+      expect(evalResults).toHaveLength(0);
+    });
+  });
+
   describe('Options', () => {
     it('should respect security option when disabled', () => {
       const code = `<?php
