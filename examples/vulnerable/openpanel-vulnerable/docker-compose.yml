@@ -1,0 +1,33 @@
+# SECURITY FLAW: Privileged mode enabled — full host access
+# SECURITY FLAW: Excessive capabilities (SYS_ADMIN, NET_ADMIN)
+# SECURITY FLAW: No resource limits defined
+#
+# This Docker Compose file demonstrates common OpenPanel extension issues
+# that HostingLint should detect:
+#   - openpanel-security-capabilities (privileged mode)
+#   - openpanel-security-capabilities (dangerous capabilities)
+#   - openpanel-resource-limits (no memory/CPU limits)
+
+version: "3.8"
+
+services:
+  extension:
+    build: .
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    ports:
+      - "8080:80"
+    volumes:
+      - extension-data:/var/www/html
+
+  worker:
+    image: redis:7
+    cap_add:
+      - ALL
+    ports:
+      - "6379:6379"
+
+volumes:
+  extension-data:

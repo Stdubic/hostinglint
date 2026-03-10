@@ -485,6 +485,133 @@ eval('$foo = "bar";');
     });
   });
 
+  describe('Insecure deserialization detection', () => {
+    it('should detect unserialize() with user input', () => {
+      const code = `<?php
+$data = unserialize($_POST['payload']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const deserResults = results.filter((r) => r.ruleId === 'security-php-deserialization');
+      expect(deserResults).toHaveLength(1);
+      expect(deserResults[0].severity).toBe('error');
+      expect(deserResults[0].line).toBe(2);
+    });
+
+    it('should detect unserialize() with $_COOKIE', () => {
+      const code = `<?php
+$session = unserialize($_COOKIE['session_data']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const deserResults = results.filter((r) => r.ruleId === 'security-php-deserialization');
+      expect(deserResults).toHaveLength(1);
+    });
+
+    it('should not flag unserialize() with safe data', () => {
+      const code = `<?php
+$config = unserialize(file_get_contents('config.dat'));
+`;
+      const results = analyzePhp(code, 'module.php');
+      const deserResults = results.filter((r) => r.ruleId === 'security-php-deserialization');
+      expect(deserResults).toHaveLength(0);
+    });
+
+    it('should not flag unserialize() in comments', () => {
+      const code = `<?php
+// $data = unserialize($_POST['payload']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const deserResults = results.filter((r) => r.ruleId === 'security-php-deserialization');
+      expect(deserResults).toHaveLength(0);
+    });
+  });
+
+  describe('SSRF detection', () => {
+    it('should detect file_get_contents with user-controlled URL', () => {
+      const code = `<?php
+$response = file_get_contents($_GET['url']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const ssrfResults = results.filter((r) => r.ruleId === 'security-php-ssrf');
+      expect(ssrfResults).toHaveLength(1);
+      expect(ssrfResults[0].severity).toBe('error');
+    });
+
+    it('should detect curl_init with user-controlled URL', () => {
+      const code = `<?php
+$ch = curl_init($_POST['endpoint']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const ssrfResults = results.filter((r) => r.ruleId === 'security-php-ssrf');
+      expect(ssrfResults).toHaveLength(1);
+    });
+
+    it('should not flag file_get_contents with hardcoded URL', () => {
+      const code = `<?php
+$response = file_get_contents('https://api.example.com/data');
+`;
+      const results = analyzePhp(code, 'module.php');
+      const ssrfResults = results.filter((r) => r.ruleId === 'security-php-ssrf');
+      expect(ssrfResults).toHaveLength(0);
+    });
+
+    it('should not flag SSRF patterns in comments', () => {
+      const code = `<?php
+// $response = file_get_contents($_GET['url']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const ssrfResults = results.filter((r) => r.ruleId === 'security-php-ssrf');
+      expect(ssrfResults).toHaveLength(0);
+    });
+  });
+
+  describe('Weak crypto detection', () => {
+    it('should detect md5() used for password hashing', () => {
+      const code = `<?php
+$hash = md5($password);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cryptoResults = results.filter((r) => r.ruleId === 'security-php-weak-crypto');
+      expect(cryptoResults).toHaveLength(1);
+      expect(cryptoResults[0].severity).toBe('error');
+    });
+
+    it('should detect sha1() used for password hashing', () => {
+      const code = `<?php
+$hash = sha1($passwd);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cryptoResults = results.filter((r) => r.ruleId === 'security-php-weak-crypto');
+      expect(cryptoResults).toHaveLength(1);
+    });
+
+    it('should not flag md5() for non-password use', () => {
+      const code = `<?php
+$checksum = md5($fileContent);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cryptoResults = results.filter((r) => r.ruleId === 'security-php-weak-crypto');
+      expect(cryptoResults).toHaveLength(0);
+    });
+
+    it('should not flag password_hash() (safe function)', () => {
+      const code = `<?php
+$hash = password_hash($password, PASSWORD_BCRYPT);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cryptoResults = results.filter((r) => r.ruleId === 'security-php-weak-crypto');
+      expect(cryptoResults).toHaveLength(0);
+    });
+
+    it('should not flag weak crypto in comments', () => {
+      const code = `<?php
+// $hash = md5($password);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cryptoResults = results.filter((r) => r.ruleId === 'security-php-weak-crypto');
+      expect(cryptoResults).toHaveLength(0);
+    });
+  });
+
   describe('Options', () => {
     it('should respect security option when disabled', () => {
       const code = `<?php

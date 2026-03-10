@@ -1,0 +1,7 @@
+{
+  "name": "vulnerable-extension",
+  "version": "1.0.0",
+  "description": "An OpenPanel extension missing apiVersion field",
+  "author": "test",
+  "entrypoint": "docker-compose.yml"
+}

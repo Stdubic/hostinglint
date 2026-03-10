@@ -33,7 +33,7 @@ hostinglint check ./my-module/
 
 ## Features
 
-- **28 lint rules** across 3 platforms (WHMCS, cPanel, OpenPanel)
+- **31 lint rules** across 3 platforms (WHMCS, cPanel, OpenPanel)
 - **WHMCS module analysis** — PHP 7.4-8.3 compatibility, WHMCS 8.11-8.13 API rules, security checks
 - **cPanel plugin analysis** — Perl 5.36+, cPanel v132-v134 compatibility, taint detection
 - **OpenPanel extension analysis** — Dockerfile best practices, Docker security, OpenCLI validation
@@ -99,9 +99,9 @@ const opResults = analyzeOpenPanel(dockerfile, 'Dockerfile');
 
 ## Rules
 
-28 rules across 3 platforms. See [docs/RULES.md](docs/RULES.md) for full documentation.
+31 rules across 3 platforms. See [docs/RULES.md](docs/RULES.md) for full documentation.
 
-### PHP / WHMCS (13 rules)
+### PHP / WHMCS (16 rules)
 
 | Rule ID | Severity | Description |
 |---------|----------|-------------|
@@ -118,6 +118,9 @@ const opResults = analyzeOpenPanel(dockerfile, 'Dockerfile');
 | `security-sql-injection` | error | SQL injection via unsanitized input |
 | `security-xss` | error | XSS via unescaped output |
 | `security-path-traversal` | error | Path traversal via user input in file ops |
+| `security-php-deserialization` | error | Insecure unserialize() with user data (CWE-502) |
+| `security-php-ssrf` | error | SSRF via user-controlled URLs (CWE-918) |
+| `security-php-weak-crypto` | error | Weak password hashing with MD5/SHA1 (CWE-327) |
 
 ### Perl / cPanel (7 rules)
 

@@ -134,9 +134,123 @@ export const phpPathTraversal: Rule = {
   },
 };
 
+/**
+ * Rule: Detect insecure deserialization via unserialize() with user input
+ */
+export const phpDeserialization: Rule = {
+  id: 'security-php-deserialization',
+  description: 'Insecure deserialization: unserialize() used with user-controlled data.',
+  severity: 'error',
+  category: 'security',
+  platform: 'whmcs',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      const match = line.match(/\bunserialize\s*\(\s*\$(?:_GET|_POST|_REQUEST|_COOKIE|params)\b/);
+      if (match && match.index !== undefined) {
+        results.push({
+          file: filePath,
+          line: i + 1,
+          column: match.index + 1,
+          message: 'Insecure deserialization: unserialize() with user-controlled data can lead to remote code execution (CWE-502).',
+          ruleId: 'security-php-deserialization',
+          severity: 'error',
+          category: 'security',
+          fix: 'Use json_decode() instead, or validate/whitelist allowed classes with the second parameter: unserialize($data, ["allowed_classes" => false]).',
+        });
+      }
+    }
+
+    return results;
+  },
+};
+
+/**
+ * Rule: Detect server-side request forgery via user-controlled URLs
+ */
+export const phpSsrf: Rule = {
+  id: 'security-php-ssrf',
+  description: 'Potential SSRF: user input controls URL in HTTP request.',
+  severity: 'error',
+  category: 'security',
+  platform: 'whmcs',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      const match = line.match(/\b(?:file_get_contents|curl_init|curl_setopt.*CURLOPT_URL|fopen|readfile)\s*\([^)]*\$(?:_GET|_POST|_REQUEST)\[/);
+      if (match && match.index !== undefined) {
+        results.push({
+          file: filePath,
+          line: i + 1,
+          column: match.index + 1,
+          message: 'Potential SSRF: user input controls URL in HTTP request. Attacker can reach internal services (CWE-918).',
+          ruleId: 'security-php-ssrf',
+          severity: 'error',
+          category: 'security',
+          fix: 'Validate URLs against an allowlist of trusted domains. Never pass raw user input to HTTP functions.',
+        });
+      }
+    }
+
+    return results;
+  },
+};
+
+/**
+ * Rule: Detect weak cryptographic algorithms for password hashing
+ */
+export const phpWeakCrypto: Rule = {
+  id: 'security-php-weak-crypto',
+  description: 'Weak password hashing: MD5/SHA1 are not suitable for passwords.',
+  severity: 'error',
+  category: 'security',
+  platform: 'whmcs',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      const match = line.match(/\b(?:md5|sha1)\s*\(\s*\$(?:password|passwd|pwd|pass|secret|token)\b/i);
+      if (match && match.index !== undefined) {
+        results.push({
+          file: filePath,
+          line: i + 1,
+          column: match.index + 1,
+          message: 'Weak password hashing: MD5/SHA1 are cryptographically broken for password storage (CWE-327).',
+          ruleId: 'security-php-weak-crypto',
+          severity: 'error',
+          category: 'security',
+          fix: 'Use password_hash($password, PASSWORD_ARGON2ID) or PASSWORD_BCRYPT with password_verify() for checking.',
+        });
+      }
+    }
+
+    return results;
+  },
+};
+
 /** All PHP security rules */
 export const phpSecurityRules: Rule[] = [
   phpSqlInjection,
   phpXss,
   phpPathTraversal,
+  phpDeserialization,
+  phpSsrf,
+  phpWeakCrypto,
 ];

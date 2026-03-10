@@ -15,7 +15,7 @@ import type { Rule } from '@hostinglint/core';
 describe('Rule Registry', () => {
   it('should have PHP rules', () => {
     expect(phpRules.length).toBeGreaterThan(0);
-    expect(phpRules.length).toBe(13);
+    expect(phpRules.length).toBe(16);
   });
 
   it('should have Perl rules', () => {
@@ -39,8 +39,8 @@ describe('Rule Registry', () => {
     );
   });
 
-  it('should have 28 total rules', () => {
-    expect(allRules.length).toBe(28);
+  it('should have 31 total rules', () => {
+    expect(allRules.length).toBe(31);
   });
 
   it('should have unique rule IDs', () => {
@@ -139,7 +139,14 @@ describe('Rule Registry', () => {
 
     it('should throw error when registering duplicate rule ID', () => {
       const registry = new RuleRegistry();
-      const mockRule = { id: 'test-rule', check: () => [] } as Rule;
+      const mockRule = {
+        id: 'test-rule',
+        description: 'test',
+        severity: 'info',
+        category: 'best-practice',
+        platform: 'all',
+        check: () => []
+      } as Rule;
       registry.register(mockRule);
       expect(() => registry.register(mockRule)).toThrow('already registered');
     });
@@ -161,7 +168,12 @@ describe('Rule Registry', () => {
       // Explicitly set length to 2 if it's not detected (though it should be for a 2-arg function)
       expect(legacyRule.check.length).toBe(2);
       
-      const results = RuleRegistry.runRule(legacyRule, { code: 'test', filePath: 'test.php' });
+      const results = RuleRegistry.runRule(legacyRule, {
+        code: 'test',
+        filePath: 'test.php',
+        lines: ['test'],
+        config: {},
+      });
       expect(results).toHaveLength(1);
       expect(results[0].message).toBe('legacy');
     });

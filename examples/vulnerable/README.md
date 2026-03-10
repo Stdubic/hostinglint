@@ -19,16 +19,22 @@ These vulnerable modules serve multiple purposes:
 
 ```
 vulnerable/
-├── whmcs-vulnerable/          # PHP-based WHMCS modules with security flaws
+├── whmcs-vulnerable/            # PHP-based WHMCS modules with security flaws
 │   ├── sql_injection.php
 │   ├── xss_vulnerability.php
 │   ├── deprecated_functions.php
 │   └── insecure_api_calls.php
-└── cpanel-vulnerable/         # Perl-based cPanel plugins with security flaws
-    ├── unsafe_file_operations.pl
-    ├── sql_injection.pl
-    ├── hardcoded_credentials.pl
-    └── deprecated_syntax.pl
+├── cpanel-vulnerable/           # Perl-based cPanel plugins with security flaws
+│   ├── unsafe_file_operations.pl
+│   ├── sql_injection.pl
+│   ├── hardcoded_credentials.pl
+│   └── deprecated_syntax.pl
+└── openpanel-vulnerable/        # Docker-based OpenPanel extensions with security flaws
+    ├── Dockerfile               # Missing USER and HEALTHCHECK
+    ├── docker-compose.yml       # Privileged mode, excessive capabilities, no resource limits
+    ├── manifest.json            # Missing apiVersion field
+    ├── setup.sh                 # Shell args without validation
+    └── deploy.py                # sys.argv without validation
 ```
 
 ## WHMCS Vulnerable Modules (PHP)
@@ -188,6 +194,79 @@ npx hostinglint examples/vulnerable/cpanel-vulnerable/hardcoded_credentials.pl
 **Test command:**
 ```bash
 npx hostinglint examples/vulnerable/cpanel-vulnerable/deprecated_syntax.pl
+```
+
+## OpenPanel Vulnerable Extensions (Docker)
+
+### Dockerfile
+
+**Issues:**
+- Missing `USER` directive — container runs as root
+- Missing `HEALTHCHECK` — container failures go undetected
+
+**Rules that should trigger:**
+- `openpanel-dockerfile`
+
+**Test command:**
+```bash
+npx hostinglint examples/vulnerable/openpanel-vulnerable/Dockerfile
+```
+
+### docker-compose.yml
+
+**Issues:**
+- `privileged: true` — full host access
+- Excessive capabilities (`SYS_ADMIN`, `NET_ADMIN`, `ALL`)
+- No resource limits (memory/CPU)
+
+**Rules that should trigger:**
+- `openpanel-security-capabilities`
+- `openpanel-resource-limits`
+
+**Test command:**
+```bash
+npx hostinglint examples/vulnerable/openpanel-vulnerable/docker-compose.yml
+```
+
+### manifest.json
+
+**Issues:**
+- Missing `apiVersion` field in extension manifest
+
+**Rules that should trigger:**
+- `openpanel-api-versioning`
+
+**Test command:**
+```bash
+npx hostinglint examples/vulnerable/openpanel-vulnerable/manifest.json
+```
+
+### setup.sh
+
+**Issues:**
+- Uses `$1`, `$2`, `$3` positional arguments without validation
+- No input sanitization before passing to `mysql` and filesystem operations
+
+**Rules that should trigger:**
+- `openpanel-cli-validation`
+
+**Test command:**
+```bash
+npx hostinglint examples/vulnerable/openpanel-vulnerable/setup.sh
+```
+
+### deploy.py
+
+**Issues:**
+- Uses `sys.argv` without `argparse` or manual validation
+- Unvalidated input passed to `subprocess.run` and filesystem operations
+
+**Rules that should trigger:**
+- `openpanel-cli-validation`
+
+**Test command:**
+```bash
+npx hostinglint examples/vulnerable/openpanel-vulnerable/deploy.py
 ```
 
 ## Running Tests

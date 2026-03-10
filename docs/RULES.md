@@ -1,10 +1,10 @@
 # HostingLint Rules Reference
 
-Complete reference of all 28 rules across all platforms.
+Complete reference of all 31 rules across all platforms.
 
 ---
 
-## PHP / WHMCS Rules (13 rules)
+## PHP / WHMCS Rules (16 rules)
 
 ### Compatibility Rules
 
@@ -150,6 +150,63 @@ echo htmlspecialchars($_GET['name'], ENT_QUOTES, 'UTF-8');
 | **Category** | security |
 
 Detects potential path traversal via user input in file operations (include, require, file_get_contents, etc.).
+
+#### `security-php-deserialization`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | security |
+
+Detects insecure `unserialize()` with user-controlled data (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, `$params`). Deserialization of untrusted data can lead to remote code execution (CWE-502).
+
+```php
+// Bad
+$data = unserialize($_POST['payload']);
+
+// Good
+$data = json_decode($_POST['payload'], true);
+// Or with allowed_classes restriction:
+$data = unserialize($input, ['allowed_classes' => false]);
+```
+
+#### `security-php-ssrf`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | security |
+
+Detects potential server-side request forgery (SSRF) where user input controls URLs in HTTP functions (`file_get_contents`, `curl_init`, `fopen`). Attackers can reach internal services (CWE-918).
+
+```php
+// Bad
+$response = file_get_contents($_GET['url']);
+
+// Good
+$allowedHosts = ['api.example.com', 'cdn.example.com'];
+$url = $_GET['url'];
+$parsed = parse_url($url);
+if (in_array($parsed['host'], $allowedHosts)) {
+    $response = file_get_contents($url);
+}
+```
+
+#### `security-php-weak-crypto`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | security |
+
+Detects weak cryptographic algorithms (MD5, SHA1) used for password hashing. These are cryptographically broken for password storage (CWE-327).
+
+```php
+// Bad
+$hash = md5($password);
+$hash = sha1($passwd);
+
+// Good
+$hash = password_hash($password, PASSWORD_ARGON2ID);
+if (password_verify($input, $hash)) { /* authenticated */ }
+```
 
 ### Best Practice Rules
 
