@@ -1,10 +1,10 @@
 # HostingLint Rules Reference
 
-Complete reference of all 31 rules across all platforms.
+Complete reference of all 32 rules across all platforms.
 
 ---
 
-## PHP / WHMCS Rules (16 rules)
+## PHP / WHMCS Rules (17 rules)
 
 ### Compatibility Rules
 
@@ -206,6 +206,25 @@ $hash = sha1($passwd);
 // Good
 $hash = password_hash($password, PASSWORD_ARGON2ID);
 if (password_verify($input, $hash)) { /* authenticated */ }
+```
+
+#### `security-command-injection`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | security |
+
+Detects potential command injection via unsanitized user input (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, `$params`) in OS command execution functions (`exec`, `shell_exec`, `system`, `passthru`, `proc_open`, `popen`) and backtick operators (CWE-78).
+
+```php
+// Bad
+exec("ping " . $_GET['host']);
+$output = shell_exec("dig " . $params['domain']);
+$result = `host $_GET['domain']`;
+
+// Good
+exec("ping " . escapeshellarg($_GET['host']));
+$output = shell_exec("dig " . escapeshellarg($params['domain']));
 ```
 
 ### Best Practice Rules

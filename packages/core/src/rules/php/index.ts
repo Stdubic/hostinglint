@@ -8,7 +8,7 @@ import { whmcsRules } from './whmcs.js';
 
 // Re-export individual rules for direct access
 export { phpEachRemoved, phpCreateFunction, phpMysqlFunctions, phpCurlyBraces } from './compatibility.js';
-export { phpSqlInjection, phpXss, phpPathTraversal, phpDeserialization, phpSsrf, phpWeakCrypto } from './security.js';
+export { phpSqlInjection, phpXss, phpPathTraversal, phpDeserialization, phpSsrf, phpWeakCrypto, phpCommandInjection } from './security.js';
 export { whmcsMetadata, whmcsDeprecated, whmcsHookErrorHandling, whmcsConfigFunction, whmcsLicenseCheck, whmcsReturnFormat } from './whmcs.js';
 
 // Re-export group arrays
