@@ -1,0 +1,125 @@
+{
+  "name": "hostinglint-vscode",
+  "displayName": "HostingLint",
+  "description": "Static analysis for WHMCS, cPanel, and OpenPanel hosting modules",
+  "version": "0.1.0",
+  "publisher": "hostinglint",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "keywords": [
+    "whmcs",
+    "cpanel",
+    "openpanel",
+    "hosting",
+    "lint",
+    "php",
+    "perl",
+    "dockerfile"
+  ],
+  "main": "./dist/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Stdubic/hostinglint.git",
+    "directory": "packages/vscode"
+  },
+  "activationEvents": [
+    "onLanguage:php",
+    "onLanguage:perl",
+    "onLanguage:dockerfile"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "HostingLint",
+      "properties": {
+        "hostinglint.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable HostingLint."
+        },
+        "hostinglint.run": {
+          "type": "string",
+          "enum": [
+            "onType",
+            "onSave"
+          ],
+          "default": "onType",
+          "description": "When to run the linter: on every keystroke or only on save."
+        },
+        "hostinglint.preset": {
+          "type": "string",
+          "enum": [
+            "recommended",
+            "strict",
+            "security-only"
+          ],
+          "default": "recommended",
+          "description": "Preset configuration to use."
+        },
+        "hostinglint.phpVersion": {
+          "type": "string",
+          "enum": [
+            "7.4",
+            "8.0",
+            "8.1",
+            "8.2",
+            "8.3",
+            "8.4"
+          ],
+          "default": "8.3",
+          "description": "Target PHP version for compatibility checks."
+        },
+        "hostinglint.whmcsVersion": {
+          "type": "string",
+          "enum": [
+            "8.11",
+            "8.12",
+            "8.13",
+            "8.14"
+          ],
+          "default": "8.13",
+          "description": "Target WHMCS version."
+        },
+        "hostinglint.cpanelVersion": {
+          "type": "string",
+          "enum": [
+            "v132",
+            "v133",
+            "v134",
+            "v135"
+          ],
+          "default": "v134",
+          "description": "Target cPanel version."
+        },
+        "hostinglint.security": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable security checks."
+        },
+        "hostinglint.bestPractices": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable best practice checks."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@hostinglint/core": "*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3",
+    "esbuild": "^0.24"
+  }
+}

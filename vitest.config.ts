@@ -11,6 +11,7 @@ export default defineConfig({
       include: [
         'packages/core/src/**/*.ts',
         'packages/cli/src/**/*.ts',
+        'packages/vscode/src/**/*.ts',
       ],
       all: false,
     },
@@ -18,6 +19,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@hostinglint/core': path.resolve(__dirname, './packages/core/src/index.ts'),
+      'vscode': path.resolve(__dirname, './packages/vscode/tests/__mocks__/vscode.ts'),
     },
   },
 });

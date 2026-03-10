@@ -32,6 +32,10 @@ export {
   ConfigValidationError,
 } from './config.js';
 
+// Auto-Analyze (unified entry point)
+export { analyzeAuto, detectPlatform, applyRuleOverrides } from './analyze.js';
+export type { AnalyzeAutoOptions } from './analyze.js';
+
 // Inline Disable
 export {
   filterDisabledResults,
