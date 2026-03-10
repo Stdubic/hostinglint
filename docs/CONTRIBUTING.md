@@ -13,73 +13,90 @@ Thank you for your interest in contributing to HostingLint! This guide will help
 ### Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/Stdubic/hostinglint.git
 cd hostinglint
-
-# Install dependencies
 npm install
-
-# Run the full validation suite
 npm run validate
 ```
+
+If `validate` passes (lint + typecheck + tests + build), you're ready.
 
 ### Development Commands
 
 ```bash
-npm run build        # Build all packages
-npm run lint         # ESLint
-npm run typecheck    # TypeScript type checking
-npm test             # Run all tests
-npm run test:watch   # Run tests in watch mode
-npm run test:coverage # Tests with coverage report
-npm run validate     # Full validation (lint + typecheck + test + build)
+npm run build          # Build all packages
+npm run lint           # ESLint
+npm run typecheck      # TypeScript type checking
+npm test               # Run all tests
+npm run test:watch     # Run tests in watch mode
+npm run test:coverage  # Tests with coverage report
+npm run validate       # Full validation (lint + typecheck + test + build)
 ```
 
-## Adding a New Rule
+## Project Structure
 
-This is the most common type of contribution. Follow these steps:
+```
+packages/
+  core/                    @hostinglint/core (analysis engine)
+    src/
+      analyzers/           Platform-specific analyzers (php/, perl/, openpanel/)
+      rules/               Rule definitions by platform
+        php/               PHP/WHMCS rules (compatibility.ts, security.ts, whmcs.ts)
+        perl/              Perl/cPanel rules
+        openpanel/         OpenPanel/Docker rules
+        common/            Cross-platform rules
+      types.ts             Core type definitions
+    tests/                 Test suite (mirrors src/ structure)
+  cli/                     hostinglint CLI (Commander.js)
+examples/
+  vulnerable/              Intentionally vulnerable modules for testing
+docs/                      Documentation
+```
 
-### 1. Choose Your Rule
+## Adding a New Rule (Step by Step)
 
-Before starting, check the [existing rules](RULES.md) to avoid duplicates. Good rule ideas:
-- PHP function deprecations/removals in specific versions
-- WHMCS API changes between versions
-- Security vulnerabilities (SQL injection, XSS, etc.)
-- Perl/cPanel best practices
-- OpenPanel extension issues
+This is the most common contribution. Here's how:
 
-### 2. Define the Rule
+### 1. Pick a rule
 
-Edit `packages/core/src/rules/index.ts` and add your rule definition:
+Check [RULES.md](RULES.md) and [RULES-ROADMAP.md](RULES-ROADMAP.md) for ideas and to avoid duplicates.
+
+### 2. Create the rule
+
+Add it in the appropriate platform file (e.g., `packages/core/src/rules/php/security.ts`):
 
 ```typescript
+import type { LintResult, Rule, RuleContext } from '../../types.js';
+
 /**
- * Rule: [Brief description of what it detects]
+ * Rule: Detect [what your rule detects]
  */
-const myNewRule: Rule = {
-  id: 'platform-category-name',       // e.g., 'php-compat-match'
+export const myNewRule: Rule = {
+  id: 'platform-category-name',
   description: 'Human-readable description.',
-  severity: 'error',                   // 'error' | 'warning' | 'info'
-  category: 'compatibility',           // 'compatibility' | 'security' | 'best-practice'
-  platform: 'whmcs',                   // 'whmcs' | 'cpanel' | 'openpanel' | 'all'
-  minPhpVersion: '8.0',               // Optional: version constraint
-  check: (code: string, filePath: string): LintResult[] => {
+  severity: 'error',
+  category: 'security',
+  platform: 'whmcs',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
     const results: LintResult[] = [];
     const lines = code.split('\n');
 
     for (let i = 0; i < lines.length; i++) {
-      const match = lines[i].match(/your-pattern-here/);
+      const line = lines[i];
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      const match = line.match(/your-regex-pattern/);
       if (match && match.index !== undefined) {
         results.push({
           file: filePath,
           line: i + 1,
           column: match.index + 1,
-          message: 'Description of the issue found.',
+          message: 'What the issue is and why it matters.',
           ruleId: 'platform-category-name',
           severity: 'error',
-          category: 'compatibility',
-          fix: 'Suggested fix for the issue.',
+          category: 'security',
+          fix: 'How to fix it.',
         });
       }
     }
@@ -89,81 +106,90 @@ const myNewRule: Rule = {
 };
 ```
 
-### 3. Register the Rule
+### 3. Register the rule
 
-Add your rule to the appropriate array at the bottom of the rules file:
+Export it from the platform's `index.ts` and add it to the rules array:
 
 ```typescript
-export const phpRules: Rule[] = [
+// In packages/core/src/rules/php/security.ts (bottom)
+export const phpSecurityRules: Rule[] = [
   // ... existing rules
-  myNewRule,  // Add here
+  myNewRule,
 ];
+
+// In packages/core/src/rules/php/index.ts
+export { myNewRule } from './security.js';
 ```
 
-### 4. Write Tests
+### 4. Write tests
 
-Add tests in the appropriate test file (`packages/core/tests/analyzers/php.test.ts`, `perl.test.ts`, etc.):
+Add tests in `packages/core/tests/analyzers/php.test.ts` (or `perl.test.ts`, `openpanel.test.ts`):
 
 ```typescript
 describe('My new rule', () => {
-  it('should detect the issue (positive case)', () => {
+  it('should detect the issue', () => {
     const code = `<?php
-// Code that should trigger the rule
+$hash = md5($password);
 `;
     const results = analyzePhp(code, 'test.php');
-    const ruleResults = results.filter((r) => r.ruleId === 'platform-category-name');
-    expect(ruleResults.length).toBeGreaterThanOrEqual(1);
+    const hits = results.filter((r) => r.ruleId === 'platform-category-name');
+    expect(hits).toHaveLength(1);
+    expect(hits[0].severity).toBe('error');
   });
 
-  it('should not flag safe code (negative case)', () => {
+  it('should not flag safe code', () => {
     const code = `<?php
-// Code that should NOT trigger the rule
+$hash = password_hash($password, PASSWORD_BCRYPT);
 `;
     const results = analyzePhp(code, 'test.php');
-    const ruleResults = results.filter((r) => r.ruleId === 'platform-category-name');
-    expect(ruleResults).toHaveLength(0);
+    const hits = results.filter((r) => r.ruleId === 'platform-category-name');
+    expect(hits).toHaveLength(0);
   });
 });
 ```
 
-### 5. Run Validation
+### 5. Update rule count
+
+Update the rule count in `packages/core/tests/rules.test.ts` and `README.md`.
+
+### 6. Validate
 
 ```bash
 npm run validate
 ```
 
-All tests must pass, and there should be no TypeScript or ESLint errors.
+Everything must pass. No TypeScript errors, no ESLint warnings, all tests green.
 
 ## Rule Guidelines
 
-- **Pure functions**: Rules must not have side effects (no I/O, no network)
-- **No exceptions**: Return empty array `[]` if nothing found, never throw
-- **Line numbers**: Always include accurate `line` (1-indexed) and `column` (1-indexed)
-- **Fix suggestions**: Include a `fix` field when there is a clear remediation
-- **Regex-based**: Use regex pattern matching, no code execution
-- **Unique IDs**: Follow the pattern `{platform}-{category}-{name}`
+- **Pure functions**: No side effects (no I/O, no network)
+- **Never throw**: Return empty `[]` if no issues found
+- **Line numbers**: Always 1-indexed for `line` and `column`
+- **Fix suggestions**: Include a `fix` when there's a clear remediation
+- **Regex-based**: Pattern matching on strings only, never execute code
+- **Skip comments**: Filter out commented lines to avoid false positives
+- **Unique IDs**: Format `{platform}-{category}-{name}` (e.g., `security-php-ssrf`)
 
 ## Code Style
 
-- TypeScript strict mode -- avoid `any`, use proper types
-- Use `interface` for object shapes, `type` for unions/literals
-- Use `.js` extension in relative import paths (Node16 module resolution)
-- All functions should have JSDoc comments
-- Use `const` over `let`, never use `var`
+- TypeScript strict mode -- no `any`
+- `interface` for object shapes, `type` for unions
+- `.js` extension in relative imports (Node16 module resolution)
+- JSDoc comments on exported functions
+- `const` over `let`, never `var`
 
 ## Pull Request Process
 
 1. Fork the repository and create a feature branch
-2. Make your changes following the guidelines above
-3. Ensure `npm run validate` passes
-4. Write a clear PR description explaining the change
-5. Link any related issues
+2. Make your changes
+3. Run `npm run validate` -- it must pass
+4. Submit a PR with a clear description
+5. Link related issues
 
 ## Reporting Issues
 
-- Use GitHub Issues for bug reports and feature requests
-- Include reproduction steps for bugs
-- For security vulnerabilities, please email directly (do not open a public issue)
+- Use GitHub Issues for bugs and feature requests
+- For security vulnerabilities, see [SECURITY.md](../SECURITY.md)
 
 ## Code of Conduct
 
