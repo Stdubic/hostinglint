@@ -612,6 +612,121 @@ $hash = password_hash($password, PASSWORD_BCRYPT);
     });
   });
 
+  describe('Command injection detection', () => {
+    it('should detect exec() with $_GET', () => {
+      const code = `<?php
+exec("ping " . $_GET['host']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(1);
+      expect(cmdResults[0].severity).toBe('error');
+      expect(cmdResults[0].line).toBe(2);
+    });
+
+    it('should detect shell_exec() with $params', () => {
+      const code = `<?php
+$output = shell_exec("dig " . $params['domain']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(1);
+    });
+
+    it('should detect system() with $_POST', () => {
+      const code = `<?php
+system("nslookup " . $_POST['domain']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(1);
+    });
+
+    it('should detect passthru() with $_REQUEST', () => {
+      const code = `<?php
+passthru("whois " . $_REQUEST['domain']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(1);
+    });
+
+    it('should detect proc_open() with $_GET', () => {
+      const code = `<?php
+$proc = proc_open("traceroute " . $_GET['target'], $descriptors, $pipes);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(1);
+    });
+
+    it('should detect popen() with $params', () => {
+      const code = `<?php
+$handle = popen("ls " . $params['directory'], "r");
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(1);
+    });
+
+    it('should detect backtick operator with $_GET', () => {
+      const code = `<?php
+$output = \`ping \$_GET['host']\`;
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(1);
+    });
+
+    it('should detect system() with $_COOKIE', () => {
+      const code = `<?php
+system("echo " . $_COOKIE['data']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(1);
+    });
+
+    it('should detect multiple command injection findings', () => {
+      const code = `<?php
+exec("ping " . $_GET['host']);
+system("nslookup " . $_POST['domain']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(2);
+    });
+
+    it('should not flag hardcoded commands', () => {
+      const code = `<?php
+exec("whoami");
+$output = shell_exec("ls -la /tmp");
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(0);
+    });
+
+    it('should not flag when escapeshellarg() is used', () => {
+      const code = `<?php
+exec("ping " . escapeshellarg($_GET['host']));
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(0);
+    });
+
+    it('should not flag commented-out code', () => {
+      const code = `<?php
+// exec("ping " . $_GET['host']);
+# system($_POST['cmd']);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const cmdResults = results.filter((r) => r.ruleId === 'security-command-injection');
+      expect(cmdResults).toHaveLength(0);
+    });
+  });
+
   describe('Options', () => {
     it('should respect security option when disabled', () => {
       const code = `<?php

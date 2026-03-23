@@ -245,6 +245,55 @@ export const phpWeakCrypto: Rule = {
   },
 };
 
+/**
+ * Rule: Detect potential command injection via user input in OS commands
+ */
+export const phpCommandInjection: Rule = {
+  id: 'security-command-injection',
+  description: 'Potential command injection: user input in OS command execution.',
+  severity: 'error',
+  category: 'security',
+  platform: 'whmcs',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    const cmdPatterns = [
+      /\b(?:exec|shell_exec|system|passthru|proc_open|popen)\s*\([^)]*\$(?:_GET|_POST|_REQUEST|_COOKIE|params)\[/,
+      /`[^`]*\$(?:_GET|_POST|_REQUEST|_COOKIE|params)\[/,
+    ];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Skip comments
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      // Skip lines with proper sanitization
+      if (/escapeshellarg|escapeshellcmd/.test(line)) continue;
+
+      for (const pattern of cmdPatterns) {
+        const match = line.match(pattern);
+        if (match && match.index !== undefined) {
+          results.push({
+            file: filePath,
+            line: i + 1,
+            column: match.index + 1,
+            message: 'Potential command injection: user input in OS command execution. Unsanitized input in shell commands can lead to arbitrary command execution (CWE-78).',
+            ruleId: 'security-command-injection',
+            severity: 'error',
+            category: 'security',
+            fix: 'Use escapeshellarg() for arguments or escapeshellcmd() for commands. Prefer PHP built-in functions over shell commands when possible.',
+          });
+        }
+      }
+    }
+
+    return results;
+  },
+};
+
 /** All PHP security rules */
 export const phpSecurityRules: Rule[] = [
   phpSqlInjection,
@@ -253,4 +302,5 @@ export const phpSecurityRules: Rule[] = [
   phpDeserialization,
   phpSsrf,
   phpWeakCrypto,
+  phpCommandInjection,
 ];

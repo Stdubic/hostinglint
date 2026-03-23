@@ -15,7 +15,7 @@ import type { Rule } from '@hostinglint/core';
 describe('Rule Registry', () => {
   it('should have PHP rules', () => {
     expect(phpRules.length).toBeGreaterThan(0);
-    expect(phpRules.length).toBe(16);
+    expect(phpRules.length).toBe(17);
   });
 
   it('should have Perl rules', () => {
@@ -39,8 +39,8 @@ describe('Rule Registry', () => {
     );
   });
 
-  it('should have 31 total rules', () => {
-    expect(allRules.length).toBe(31);
+  it('should have 32 total rules', () => {
+    expect(allRules.length).toBe(32);
   });
 
   it('should have unique rule IDs', () => {

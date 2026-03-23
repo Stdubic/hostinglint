@@ -23,7 +23,8 @@ vulnerable/
 │   ├── sql_injection.php
 │   ├── xss_vulnerability.php
 │   ├── deprecated_functions.php
-│   └── insecure_api_calls.php
+│   ├── insecure_api_calls.php
+│   └── command_injection.php
 ├── cpanel-vulnerable/           # Perl-based cPanel plugins with security flaws
 │   ├── unsafe_file_operations.pl
 │   ├── sql_injection.pl
@@ -114,6 +115,25 @@ npx hostinglint examples/vulnerable/whmcs-vulnerable/deprecated_functions.php
 **Test command:**
 ```bash
 npx hostinglint examples/vulnerable/whmcs-vulnerable/insecure_api_calls.php
+```
+
+### command_injection.php
+
+**Vulnerabilities:**
+- `exec()` with unsanitized `$params` input
+- `shell_exec()` with unsanitized `$params` input
+- `system()` with unsanitized `$_POST` input
+- `passthru()` with unsanitized `$_REQUEST` input
+- `proc_open()` with unsanitized `$_GET` input
+- `popen()` with unsanitized `$params` input
+- Backtick operator with unsanitized `$_GET` input
+
+**Rules that should trigger:**
+- `security-command-injection`
+
+**Test command:**
+```bash
+npx hostinglint examples/vulnerable/whmcs-vulnerable/command_injection.php
 ```
 
 ## cPanel Vulnerable Plugins (Perl)
