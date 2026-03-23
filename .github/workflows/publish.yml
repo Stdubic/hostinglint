@@ -43,9 +43,6 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: read
-      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +60,7 @@ jobs:
         run: npm run build
 
       - name: Publish @hostinglint/core
-        run: npm publish --access public --provenance
+        run: npm publish --access public
         working-directory: packages/core
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -73,9 +70,6 @@ jobs:
     needs: publish-core
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: read
-      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -93,7 +87,7 @@ jobs:
         run: npm run build
 
       - name: Publish hostinglint
-        run: npm publish --access public --provenance
+        run: npm publish --access public
         working-directory: packages/cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
