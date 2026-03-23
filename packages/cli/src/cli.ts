@@ -4,25 +4,22 @@
 
 import { Command } from 'commander';
 import { readFileSync, writeFileSync, readdirSync, statSync, watch } from 'node:fs';
-import { resolve, extname, relative } from 'node:path';
+import { resolve, relative } from 'node:path';
 import {
-  analyzePhp,
-  analyzePerl,
-  analyzeOpenPanel,
+  analyzeAuto,
+  detectPlatform,
   findConfig,
   shouldIgnore,
   applyFixes,
   getFixableSummary,
 } from '@hostinglint/core';
 import type {
-  LintResult,
   Platform,
   PhpVersion,
   Severity,
   OutputFormat,
   LintSummary,
   HostingLintConfig,
-  RuleSeverityOverride,
 } from '@hostinglint/core';
 
 const program = new Command();
@@ -208,17 +205,7 @@ function walkDirectory(dir: string, ignorePatterns: string[] = []): string[] {
  * Check if a file has a supported extension
  */
 function isSupportedFile(filePath: string): boolean {
-  const ext = extname(filePath).toLowerCase();
-  const fileName = filePath.split('/').pop()?.toLowerCase() ?? '';
-
-  return (
-    ext === '.php' ||
-    ext === '.pl' ||
-    ext === '.pm' ||
-    ext === '.cgi' ||
-    fileName === 'dockerfile' ||
-    fileName.startsWith('dockerfile.')
-  );
+  return detectPlatform(filePath) !== null;
 }
 
 // =============================================================================
@@ -226,21 +213,7 @@ function isSupportedFile(filePath: string): boolean {
 // =============================================================================
 
 /**
- * Detect platform from file extension
- */
-function detectPlatform(filePath: string): Platform | null {
-  const ext = extname(filePath).toLowerCase();
-  const fileName = filePath.split('/').pop()?.toLowerCase() ?? '';
-
-  if (ext === '.php') return 'whmcs';
-  if (ext === '.pl' || ext === '.pm' || ext === '.cgi') return 'cpanel';
-  if (fileName === 'dockerfile' || fileName.startsWith('dockerfile.')) return 'openpanel';
-
-  return null;
-}
-
-/**
- * Analyze all collected files
+ * Analyze all collected files using analyzeAuto from core
  */
 function analyzeFiles(files: string[], options: CheckOptions, config: HostingLintConfig): LintSummary {
   const summary: LintSummary = {
@@ -253,42 +226,18 @@ function analyzeFiles(files: string[], options: CheckOptions, config: HostingLin
 
   for (const file of files) {
     const code = readFileSync(file, 'utf-8');
-    const platform = options.platform ?? detectPlatform(file);
-    let results: LintResult[] = [];
+    const results = analyzeAuto(code, file, {
+      platform: options.platform,
+      phpVersion: options.phpVersion as PhpVersion,
+      security: options.security,
+      bestPractices: options.bestPractices,
+      rules: config.rules,
+    });
 
-    switch (platform) {
-      case 'whmcs':
-        results = analyzePhp(code, file, {
-          phpVersion: options.phpVersion as PhpVersion,
-          security: options.security,
-          bestPractices: options.bestPractices,
-        });
-        break;
-      case 'cpanel':
-        results = analyzePerl(code, file, {
-          security: options.security,
-          bestPractices: options.bestPractices,
-        });
-        break;
-      case 'openpanel':
-        results = analyzeOpenPanel(code, file, {
-          security: options.security,
-          bestPractices: options.bestPractices,
-        });
-        break;
-      default:
-        // Skip unsupported file types
-        continue;
-    }
+    if (results.length === 0) continue;
 
-    // Apply rule overrides from config
-    results = applyRuleOverrides(results, config.rules ?? {});
+    summary.results.set(file, results);
 
-    if (results.length > 0) {
-      summary.results.set(file, results);
-    }
-
-    // Update counts
     for (const result of results) {
       switch (result.severity) {
         case 'error': summary.errors++; break;
@@ -299,29 +248,6 @@ function analyzeFiles(files: string[], options: CheckOptions, config: HostingLin
   }
 
   return summary;
-}
-
-/**
- * Apply rule severity overrides from config
- */
-function applyRuleOverrides(
-  results: LintResult[],
-  ruleOverrides: Record<string, RuleSeverityOverride>
-): LintResult[] {
-  if (Object.keys(ruleOverrides).length === 0) return results;
-
-  return results
-    .filter((result) => {
-      const override = ruleOverrides[result.ruleId];
-      return override !== 'off';
-    })
-    .map((result) => {
-      const override = ruleOverrides[result.ruleId];
-      if (override && override !== 'off') {
-        return { ...result, severity: override };
-      }
-      return result;
-    });
 }
 
 // =============================================================================

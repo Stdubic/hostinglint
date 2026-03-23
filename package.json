@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w packages/core && npm run build -w packages/cli",
+    "build": "npm run build -w packages/core && npm run build -w packages/cli && npm run build -w packages/vscode",
     "lint": "eslint .",
     "lint:ci": "eslint --max-warnings 0 .",
     "typecheck": "tsc --noEmit",

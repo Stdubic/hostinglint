@@ -11,27 +11,29 @@
 HostingLint is a static analysis engine that validates hosting control panel modules across three platforms using a unified TypeScript architecture.
 
 ```
-                         ┌─────────────────┐
-                         │   CLI (hostinglint)   │
-                         │  Commander.js + SARIF  │
-                         └────────┬────────┘
-                                  │
-                         ┌────────▼────────┐
-                         │  @hostinglint/core     │
-                         │  Public API + Config   │
-                         └────────┬────────┘
-                                  │
-              ┌───────────────────┼───────────────────┐
-              │                   │                   │
-     ┌────────▼────────┐ ┌───────▼────────┐ ┌────────▼────────┐
-     │  PHP Analyzer    │ │ Perl Analyzer   │ │ OpenPanel        │
-     │  WHMCS modules   │ │ cPanel plugins  │ │ Docker extensions│
-     └────────┬────────┘ └───────┬────────┘ └────────┬────────┘
-              │                   │                   │
-     ┌────────▼────────┐ ┌───────▼────────┐ ┌────────▼────────┐
-     │  PHP Rules (13)  │ │ Perl Rules (7)  │ │ OpenPanel (5)   │
-     │  + Common (3)    │ │ + Common (3)    │ │ + Common (3)    │
-     └─────────────────┘ └────────────────┘ └─────────────────┘
+  ┌──────────────────┐       ┌──────────────────────┐
+  │  CLI (hostinglint)    │       │  VS Code Extension      │
+  │  Commander.js + SARIF │       │  Diagnostics + Hover     │
+  └────────┬─────────┘       └──────────┬───────────┘
+           │                             │
+           └──────────┬──────────────────┘
+                      │
+             ┌────────▼────────┐
+             │  @hostinglint/core     │
+             │  analyzeAuto() + API   │
+             └────────┬────────┘
+                      │
+      ┌───────────────┼───────────────────┐
+      │               │                   │
+ ┌────▼──────┐  ┌─────▼──────┐  ┌────────▼────────┐
+ │ PHP        │  │ Perl        │  │ OpenPanel        │
+ │ WHMCS      │  │ cPanel      │  │ Docker extensions│
+ └────┬──────┘  └─────┬──────┘  └────────┬────────┘
+      │               │                   │
+ ┌────▼──────┐  ┌─────▼──────┐  ┌────────▼────────┐
+ │ PHP Rules  │  │ Perl Rules  │  │ OpenPanel Rules  │
+ │ + Common   │  │ + Common    │  │ + Common         │
+ └───────────┘  └────────────┘  └─────────────────┘
 ```
 
 ## Package Structure
@@ -55,6 +57,7 @@ hostinglint/
 │   │   │   │   ├── common/   Cross-platform rules (credentials, eval, TODO)
 │   │   │   │   ├── registry.ts  RuleRegistry class
 │   │   │   │   └── index.ts  Rule exports and lookup functions
+│   │   │   ├── analyze.ts     Unified analyzeAuto() entry point
 │   │   │   ├── config.ts     Configuration loading/validation
 │   │   │   ├── fixer.ts      Auto-fix engine
 │   │   │   ├── inline-disable.ts  Inline comment directives
@@ -63,9 +66,20 @@ hostinglint/
 │   │   │   ├── types.ts      Core type definitions
 │   │   │   └── index.ts      Public API
 │   │   └── tests/            Vitest test suite (131 tests)
-│   └── cli/                  hostinglint CLI (Commander.js)
-│       ├── src/cli.ts        Entry point
-│       └── tests/            CLI integration tests
+│   ├── cli/                  hostinglint CLI (Commander.js)
+│   │   ├── src/cli.ts        Entry point
+│   │   └── tests/            CLI integration tests
+│   └── vscode/               VS Code extension (hostinglint-vscode)
+│       ├── src/
+│       │   ├── extension.ts  Activation + event listeners
+│       │   ├── diagnostics.ts analyzeAuto() → Diagnostic conversion
+│       │   ├── config.ts     Config cache + .hostinglintrc.json
+│       │   ├── code-actions.ts Quick fixes + disable-line
+│       │   ├── hover.ts      Rule info on hover
+│       │   ├── logger.ts     OutputChannel logging
+│       │   └── constants.ts  Shared constants
+│       ├── tests/            Vitest tests with vscode mock
+│       └── esbuild.mjs       CJS bundle for extension host
 ├── examples/                 Sample modules for testing
 │   ├── whmcs-sample/         Clean WHMCS modules
 │   ├── cpanel-sample/        Clean cPanel plugins
@@ -81,14 +95,13 @@ hostinglint/
 ### Data Flow
 
 ```
-Input File  →  Detect Platform  →  Select Rules  →  Run Checks  →  Collect Results  →  Format Output
-   .php          PHP/WHMCS         13 PHP rules      regex match     LintResult[]       text/json/sarif
-   .pl           Perl/cPanel        7 Perl rules     per-line scan   sorted by line
-   Dockerfile    OpenPanel          5 OpenPanel       + context
-   .yml/.yaml    OpenPanel         + 3 cross-plat
-   .json         OpenPanel
-   .sh/.py       OpenPanel
+Input File  →  analyzeAuto()  →  Select Rules  →  Run Checks  →  Apply Overrides  →  Output
+   .php      detect: WHMCS      PHP rules         regex match     rule overrides      text/json/sarif
+   .pl       detect: cPanel     Perl rules        per-line scan   severity changes    vscode diagnostics
+   Dockerfile detect: OpenPanel  OpenPanel rules   + context       'off' filtering
 ```
+
+The unified `analyzeAuto()` entry point (in `packages/core/src/analyze.ts`) handles platform detection, analyzer dispatch, and rule overrides. Both the CLI and VS Code extension use this single function.
 
 ### Analyzer Factory Pattern
 
@@ -175,6 +188,36 @@ No PHP or Perl runtime is required. No code is ever executed.
 - **recommended**: balanced error/warning configuration
 - **strict**: all rules at error level
 - **security-only**: only security rules enabled
+
+## VS Code Extension
+
+### Architecture: Direct API (no LSP)
+
+The extension calls `analyzeAuto()` from `@hostinglint/core` directly in the VS Code extension host process. Since core analysis is synchronous and sub-millisecond per file, a Language Server Protocol layer is unnecessary overhead.
+
+### Module Overview
+
+| Module | Responsibility |
+|--------|---------------|
+| `extension.ts` | Lifecycle (activate/deactivate), event listeners, provider registration |
+| `diagnostics.ts` | Calls `analyzeAuto()`, converts `LintResult[]` → `vscode.Diagnostic[]`, maintains result store |
+| `config.ts` | Config cache per workspace folder, reads `.hostinglintrc.json` via core's `findConfig()`, falls back to VS Code settings |
+| `code-actions.ts` | Quick fixes from `fixAction`, "disable rule for this line" for PHP/Perl |
+| `hover.ts` | Rule details on hover (ID, category, platform, severity, fix suggestion) |
+| `logger.ts` | `OutputChannel('HostingLint')` for error logging |
+
+### Key Design Decisions
+
+- **Config cache per workspace folder** — `findConfig()` result is cached by workspace folder URI, invalidated on `.hostinglintrc.json` change via `FileSystemWatcher`
+- **Result store (`Map<string, LintResult[]>`)** — Keyed by document URI, used by hover and code actions to look up full rule info without re-analyzing
+- **Debounced onType analysis** — 300ms debounce prevents excessive analysis during rapid typing
+- **End-of-line diagnostic range** — Underlines extend from the issue column to end of line, avoiding word-boundary ambiguity
+- **Disable-line for PHP/Perl only** — Dockerfiles and YAML have no inline comment standard for disable directives
+- **`setTimeout(fn, 0)` batching** — Config change re-analysis of all open documents is batched to avoid blocking
+
+### Build
+
+The extension is bundled with esbuild into a single CJS file (`dist/extension.js`), with `vscode` as an external dependency. The bundle is ~72KB.
 
 ## Performance
 
