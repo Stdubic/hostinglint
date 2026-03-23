@@ -1,6 +1,6 @@
 {
   "name": "@hostinglint/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Core analysis engine for HostingLint - validates WHMCS, cPanel, and OpenPanel modules",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

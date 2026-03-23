@@ -1,6 +1,6 @@
 {
   "name": "hostinglint",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for HostingLint - validate WHMCS, cPanel, and OpenPanel modules",
   "main": "./dist/cli.js",
   "types": "./dist/cli.d.ts",
@@ -45,7 +45,7 @@
     "url": "https://nlnet.nl/commonsfund/"
   },
   "dependencies": {
-    "@hostinglint/core": "0.1.0",
+    "@hostinglint/core": "0.1.1",
     "commander": "^13"
   }
 }
