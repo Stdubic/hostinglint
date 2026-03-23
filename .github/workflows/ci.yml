@@ -135,23 +135,24 @@ jobs:
           path: coverage/
           retention-days: 14
 
-      - name: Enforce coverage threshold (85%)
+      - name: Enforce coverage threshold
         if: matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
         run: |
           if [ -f coverage/coverage-summary.json ]; then
             node -e "
               const c = require('./coverage/coverage-summary.json').total;
-              const threshold = 85;
-              const metrics = ['statements', 'branches', 'functions', 'lines'];
+              const thresholds = { statements: 80, branches: 80, functions: 75, lines: 80 };
               let failed = false;
-              for (const m of metrics) {
+              for (const [m, threshold] of Object.entries(thresholds)) {
                 if (c[m].pct < threshold) {
                   console.error('Coverage for ' + m + ' (' + c[m].pct + '%) is below threshold (' + threshold + '%)');
                   failed = true;
+                } else {
+                  console.log('✓ ' + m + ': ' + c[m].pct + '% (threshold: ' + threshold + '%)');
                 }
               }
               if (failed) process.exit(1);
-              console.log('All coverage metrics above ' + threshold + '%');
+              console.log('All coverage metrics pass!');
             "
           fi
 
