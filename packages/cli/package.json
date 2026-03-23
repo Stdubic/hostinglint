@@ -8,11 +8,13 @@
     "hostinglint": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "whmcs",
@@ -20,7 +22,9 @@
     "openpanel",
     "hosting",
     "lint",
-    "cli"
+    "cli",
+    "static-analysis",
+    "security"
   ],
   "author": "Stdubic",
   "license": "MIT",
@@ -32,12 +36,16 @@
     "url": "https://github.com/Stdubic/hostinglint.git",
     "directory": "packages/cli"
   },
+  "homepage": "https://github.com/Stdubic/hostinglint#readme",
+  "bugs": {
+    "url": "https://github.com/Stdubic/hostinglint/issues"
+  },
   "funding": {
     "type": "individual",
     "url": "https://nlnet.nl/commonsfund/"
   },
   "dependencies": {
-    "@hostinglint/core": "*",
+    "@hostinglint/core": "0.1.0",
     "commander": "^13"
   }
 }

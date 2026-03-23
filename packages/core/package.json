@@ -11,11 +11,13 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "whmcs",
@@ -25,7 +27,9 @@
     "lint",
     "static-analysis",
     "php",
-    "perl"
+    "perl",
+    "security",
+    "best-practices"
   ],
   "author": "Stdubic",
   "license": "MIT",
@@ -37,8 +41,15 @@
     "url": "https://github.com/Stdubic/hostinglint.git",
     "directory": "packages/core"
   },
+  "homepage": "https://github.com/Stdubic/hostinglint#readme",
+  "bugs": {
+    "url": "https://github.com/Stdubic/hostinglint/issues"
+  },
   "funding": {
     "type": "individual",
     "url": "https://nlnet.nl/commonsfund/"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
