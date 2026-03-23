@@ -3,6 +3,7 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 concurrency:
   group: publish-${{ github.ref }}
@@ -59,7 +60,21 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check if @hostinglint/core version already exists
+        id: core-version
+        working-directory: packages/core
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "@hostinglint/core@${VERSION}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "@hostinglint/core@${VERSION} already exists on npm, skipping publish."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "@hostinglint/core@${VERSION} not found on npm, publishing."
+          fi
+
       - name: Publish @hostinglint/core
+        if: steps.core-version.outputs.exists == 'false'
         run: npm publish --access public
         working-directory: packages/core
         env:
@@ -86,7 +101,21 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check if hostinglint version already exists
+        id: cli-version
+        working-directory: packages/cli
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "hostinglint@${VERSION}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "hostinglint@${VERSION} already exists on npm, skipping publish."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "hostinglint@${VERSION} not found on npm, publishing."
+          fi
+
       - name: Publish hostinglint
+        if: steps.cli-version.outputs.exists == 'false'
         run: npm publish --access public
         working-directory: packages/cli
         env:
