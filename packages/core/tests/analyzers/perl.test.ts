@@ -251,6 +251,150 @@ if ($user =~ /^[a-z]+$/) {
     });
   });
 
+  describe('Two-argument open detection', () => {
+    it('should detect two-arg open with bareword filehandle', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+open(CONFIG, "/etc/config.txt");
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const openResults = results.filter((r) => r.ruleId === 'perl-compat-two-arg-open');
+      expect(openResults).toHaveLength(1);
+      expect(openResults[0].severity).toBe('warning');
+    });
+
+    it('should detect two-arg open with lexical filehandle', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+open(my $fh, $filename) or die "Cannot open: $!";
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const openResults = results.filter((r) => r.ruleId === 'perl-compat-two-arg-open');
+      expect(openResults).toHaveLength(1);
+    });
+
+    it('should not flag three-arg open', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+open(my $fh, "<", "/etc/config.txt");
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const openResults = results.filter((r) => r.ruleId === 'perl-compat-two-arg-open');
+      expect(openResults).toHaveLength(0);
+    });
+
+    it('should not flag commented-out open', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+# open(FH, $file);
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const openResults = results.filter((r) => r.ruleId === 'perl-compat-two-arg-open');
+      expect(openResults).toHaveLength(0);
+    });
+  });
+
+  describe('Indirect object syntax detection', () => {
+    it('should detect new ClassName()', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+my $obj = new MyClass();
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const indResults = results.filter((r) => r.ruleId === 'perl-compat-indirect-object');
+      expect(indResults).toHaveLength(1);
+      expect(indResults[0].severity).toBe('warning');
+    });
+
+    it('should detect new with namespaced class', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+my $handler = new File::Handler($filename);
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const indResults = results.filter((r) => r.ruleId === 'perl-compat-indirect-object');
+      expect(indResults).toHaveLength(1);
+    });
+
+    it('should not flag ClassName->new()', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+my $obj = MyClass->new();
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const indResults = results.filter((r) => r.ruleId === 'perl-compat-indirect-object');
+      expect(indResults).toHaveLength(0);
+    });
+
+    it('should not flag commented-out indirect object', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+# my $obj = new MyClass();
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const indResults = results.filter((r) => r.ruleId === 'perl-compat-indirect-object');
+      expect(indResults).toHaveLength(0);
+    });
+  });
+
+  describe('Bareword filehandle detection', () => {
+    it('should detect bareword filehandles in open/print/close', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+open(LOGFILE, ">", "/var/log/app.log");
+print LOGFILE "Log entry\n";
+close(LOGFILE);
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const bwResults = results.filter((r) => r.ruleId === 'perl-compat-bareword-filehandle');
+      expect(bwResults).toHaveLength(3);
+    });
+
+    it('should not flag STDOUT/STDERR/STDIN', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+print STDOUT "hello\n";
+print STDERR "error\n";
+close(STDIN);
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const bwResults = results.filter((r) => r.ruleId === 'perl-compat-bareword-filehandle');
+      expect(bwResults).toHaveLength(0);
+    });
+
+    it('should not flag lexical filehandles', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+open(my $fh, "<", "file.txt");
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const bwResults = results.filter((r) => r.ruleId === 'perl-compat-bareword-filehandle');
+      expect(bwResults).toHaveLength(0);
+    });
+
+    it('should not flag commented-out bareword filehandles', () => {
+      const code = `#!/usr/bin/perl
+use strict;
+use warnings;
+# print LOGFILE "text";
+`;
+      const results = analyzePerl(code, 'plugin.pl');
+      const bwResults = results.filter((r) => r.ruleId === 'perl-compat-bareword-filehandle');
+      expect(bwResults).toHaveLength(0);
+    });
+  });
+
   describe('Options', () => {
     it('should respect security option when disabled', () => {
       const code = `#!/usr/bin/perl

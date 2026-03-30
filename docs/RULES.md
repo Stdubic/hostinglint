@@ -1,6 +1,6 @@
 # HostingLint Rules Reference
 
-Complete reference of all 32 rules across all platforms.
+Complete reference of all 35 rules across all platforms.
 
 ---
 
@@ -247,7 +247,7 @@ Detects modules that appear to lack license validation (for commercial modules).
 
 ---
 
-## Perl / cPanel Rules (7 rules)
+## Perl / cPanel Rules (10 rules)
 
 ### Compatibility Rules
 
@@ -266,6 +266,61 @@ Detects deprecated cPanel API1 usage. Should use API2 or UAPI instead.
 | **Category** | compatibility |
 
 Detects usage of deprecated Perl modules (CGI.pm, Switch, Class::ISA, etc.).
+
+#### `perl-compat-two-arg-open`
+| | |
+|---|---|
+| **Severity** | warning |
+| **Category** | compatibility |
+
+Detects two-argument `open()` which is insecure and allows shell injection via metacharacters. Use the three-argument form instead.
+
+```perl
+# Bad
+open(CONFIG, "/etc/config.txt");
+open(my $fh, $filename);
+
+# Good
+open(my $fh, "<", "/etc/config.txt") or die "Cannot open: $!";
+```
+
+#### `perl-compat-indirect-object`
+| | |
+|---|---|
+| **Severity** | warning |
+| **Category** | compatibility |
+
+Detects indirect object syntax (`new ClassName()`) which is deprecated since Perl 5.36. Use direct method call syntax instead.
+
+```perl
+# Bad
+my $obj = new MyClass();
+my $handler = new File::Handler($filename);
+
+# Good
+my $obj = MyClass->new();
+my $handler = File::Handler->new($filename);
+```
+
+#### `perl-compat-bareword-filehandle`
+| | |
+|---|---|
+| **Severity** | warning |
+| **Category** | compatibility |
+
+Detects bareword filehandles (`LOGFILE`, `CONFIG`) which are deprecated since Perl 5.36. Standard filehandles (STDIN, STDOUT, STDERR) are excluded. Use lexical filehandles instead.
+
+```perl
+# Bad
+open(LOGFILE, ">", "/var/log/app.log");
+print LOGFILE "Log entry\n";
+close(LOGFILE);
+
+# Good
+open(my $fh, ">", "/var/log/app.log") or die "Cannot open: $!";
+print $fh "Log entry\n";
+close($fh);
+```
 
 ### Security Rules
 

@@ -20,7 +20,7 @@ describe('Rule Registry', () => {
 
   it('should have Perl rules', () => {
     expect(perlRules.length).toBeGreaterThan(0);
-    expect(perlRules.length).toBe(7);
+    expect(perlRules.length).toBe(10);
   });
 
   it('should have OpenPanel rules', () => {
@@ -39,8 +39,8 @@ describe('Rule Registry', () => {
     );
   });
 
-  it('should have 32 total rules', () => {
-    expect(allRules.length).toBe(32);
+  it('should have 35 total rules', () => {
+    expect(allRules.length).toBe(35);
   });
 
   it('should have unique rule IDs', () => {

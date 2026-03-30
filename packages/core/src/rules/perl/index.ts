@@ -9,7 +9,7 @@ import { perlCompatibilityRules } from './compatibility.js';
 // Re-export individual rules
 export { perlStrictWarnings, perlErrorHandling } from './best-practice.js';
 export { perlTaintCheck, perlFilePermissions, perlInputValidation } from './security.js';
-export { perlCpanelApiVersion, perlDeprecatedModules } from './compatibility.js';
+export { perlCpanelApiVersion, perlDeprecatedModules, perlCompatTwoArgOpen, perlCompatIndirectObject, perlCompatBarewordFilehandle } from './compatibility.js';
 
 // Re-export group arrays
 export { perlBestPracticeRules } from './best-practice.js';
