@@ -139,7 +139,7 @@ HostingLint is not just a linter for legacy hosting platforms. It spans the host
 
 - [ ] Review the [Guide for Applicants](https://nlnet.nl/commonsfund/guideforapplicants/)
 - [ ] Review the [52-Day Action Plan](./NLNET-ACTION-PLAN.md)
-- [ ] Prepare this proposal text for the online form
+- [ ] Prepare this proposal text for the online form (see `NLNET-APPLICATION-FORM-FIELDS.md`, `NLNET-SUBMIT-GUIDE.md`)
 - [x] Architecture document ([ARCHITECTURE.md](./ARCHITECTURE.md))
 - [x] Milestone roadmap ([MILESTONE-ROADMAP.md](./MILESTONE-ROADMAP.md))
 - [x] Security model ([SECURITY-MODEL.md](./SECURITY-MODEL.md))
@@ -147,7 +147,7 @@ HostingLint is not just a linter for legacy hosting platforms. It spans the host
 - [x] Rules roadmap ([RULES-ROADMAP.md](./RULES-ROADMAP.md))
 - [x] OpenPanel strategic analysis ([NLNET-OPENPANEL-STRATEGIC-IMPORTANCE.md](./NLNET-OPENPANEL-STRATEGIC-IMPORTANCE.md))
 - [x] SECURITY.md vulnerability reporting policy
-- [ ] Publish @hostinglint/core and hostinglint to npm (run `npm login && npm publish`)
-- [ ] Convert supporting docs to PDF for attachment
-- [ ] Submit at https://nlnet.nl/propose/ before April 1, 2026
+- [x] Publish @hostinglint/core and hostinglint to npm (see `NPM-PUBLISH.md`)
+- [x] Convert supporting docs to PDF for attachment (`npm run docs:nlnet-pdf` → `docs/nlnet-pdf/`)
+- [ ] Submit at https://nlnet.nl/propose/ before April 1, 2026 (`NLNET-SUBMIT-GUIDE.md`)
 - [ ] Disclose AI usage if applicable

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARCHITECTURE</title>
+  <style>
+  @page { margin: 1.2cm; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    font-size: 11pt;
+    line-height: 1.45;
+    color: #111;
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 0.5rem 1rem;
+  }
+  h1 { font-size: 1.6rem; margin-top: 1.2rem; }
+  h2 { font-size: 1.25rem; margin-top: 1.5rem; border-bottom: 1px solid #ddd; padding-bottom: 0.2rem; }
+  h3 { font-size: 1.05rem; margin-top: 1rem; }
+  table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; font-size: 10pt; }
+  th, td { border: 1px solid #ccc; padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+  th { background: #f4f4f4; }
+  pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 9.5pt; }
+  pre {
+    background: #f8f8f8;
+    border: 1px solid #e0e0e0;
+    padding: 0.6rem 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+  code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; }
+  pre code { background: none; padding: 0; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 1.25rem 0; }
+  ul, ol { margin: 0.5rem 0 0.5rem 1.25rem; }
+  li { margin: 0.25rem 0; }
+  p { margin: 0.5rem 0; }
+  .meta { color: #444; font-size: 10pt; }
+</style>
+</head>
+<body>
+<h1>HostingLint Architecture</h1>
+<p><strong>Version:</strong> 0.1.0</p>
+<p><strong>Date:</strong> February 2026</p>
+<p><strong>For:</strong> NLnet NGI Zero Commons Fund Application</p>
+<hr />
+<h2>System Overview</h2>
+<p>HostingLint is a static analysis engine that validates hosting control panel modules across three platforms using a unified TypeScript architecture.</p>
+<pre><code>  ┌──────────────────┐       ┌──────────────────────┐
+  │  CLI (hostinglint)    │       │  VS Code Extension      │
+  │  Commander.js + SARIF │       │  Diagnostics + Hover     │
+  └────────┬─────────┘       └──────────┬───────────┘
+           │                             │
+           └──────────┬──────────────────┘
+                      │
+             ┌────────▼────────┐
+             │  @hostinglint/core     │
+             │  analyzeAuto() + API   │
+             └────────┬────────┘
+                      │
+      ┌───────────────┼───────────────────┐
+      │               │                   │
+ ┌────▼──────┐  ┌─────▼──────┐  ┌────────▼────────┐
+ │ PHP        │  │ Perl        │  │ OpenPanel        │
+ │ WHMCS      │  │ cPanel      │  │ Docker extensions│
+ └────┬──────┘  └─────┬──────┘  └────────┬────────┘
+      │               │                   │
+ ┌────▼──────┐  ┌─────▼──────┐  ┌────────▼────────┐
+ │ PHP Rules  │  │ Perl Rules  │  │ OpenPanel Rules  │
+ │ + Common   │  │ + Common    │  │ + Common         │
+ └───────────┘  └────────────┘  └─────────────────┘</code></pre>
+<h2>Package Structure</h2>
+<h3>npm Workspace Monorepo</h3>
+<pre><code>hostinglint/
+├── packages/
+│   ├── core/                 @hostinglint/core (library)
+│   │   ├── src/
+│   │   │   ├── analyzers/    Platform-specific analysis engines
+│   │   │   │   ├── base.ts   Base analyzer factory + version utils
+│   │   │   │   ├── php/      PHP/WHMCS analyzer
+│   │   │   │   ├── perl/     Perl/cPanel analyzer
+│   │   │   │   └── openpanel/ OpenPanel/Docker analyzer
+│   │   │   ├── rules/        Rule definitions
+│   │   │   │   ├── php/      PHP compatibility, security, WHMCS
+│   │   │   │   ├── perl/     Perl security, compatibility, best practice
+│   │   │   │   ├── openpanel/ Docker security, compatibility
+│   │   │   │   ├── common/   Cross-platform rules (credentials, eval, TODO)
+│   │   │   │   ├── registry.ts  RuleRegistry class
+│   │   │   │   └── index.ts  Rule exports and lookup functions
+│   │   │   ├── analyze.ts     Unified analyzeAuto() entry point
+│   │   │   ├── config.ts     Configuration loading/validation
+│   │   │   ├── fixer.ts      Auto-fix engine
+│   │   │   ├── inline-disable.ts  Inline comment directives
+│   │   │   ├── plugins.ts    Plugin loading/validation
+│   │   │   ├── presets.ts     Shared configurations
+│   │   │   ├── types.ts      Core type definitions
+│   │   │   └── index.ts      Public API
+│   │   └── tests/            Vitest test suite (131 tests)
+│   ├── cli/                  hostinglint CLI (Commander.js)
+│   │   ├── src/cli.ts        Entry point
+│   │   └── tests/            CLI integration tests
+│   └── vscode/               VS Code extension (hostinglint-vscode)
+│       ├── src/
+│       │   ├── extension.ts  Activation + event listeners
+│       │   ├── diagnostics.ts analyzeAuto() → Diagnostic conversion
+│       │   ├── config.ts     Config cache + .hostinglintrc.json
+│       │   ├── code-actions.ts Quick fixes + disable-line
+│       │   ├── hover.ts      Rule info on hover
+│       │   ├── logger.ts     OutputChannel logging
+│       │   └── constants.ts  Shared constants
+│       ├── tests/            Vitest tests with vscode mock
+│       └── esbuild.mjs       CJS bundle for extension host
+├── examples/                 Sample modules for testing
+│   ├── whmcs-sample/         Clean WHMCS modules
+│   ├── cpanel-sample/        Clean cPanel plugins
+│   └── vulnerable/           Intentionally vulnerable examples
+│       ├── whmcs-vulnerable/
+│       ├── cpanel-vulnerable/
+│       └── openpanel-vulnerable/
+└── docs/                     Documentation</code></pre>
+<h2>Analysis Pipeline</h2>
+<h3>Data Flow</h3>
+<pre><code>Input File  →  analyzeAuto()  →  Select Rules  →  Run Checks  →  Apply Overrides  →  Output
+   .php      detect: WHMCS      PHP rules         regex match     rule overrides      text/json/sarif
+   .pl       detect: cPanel     Perl rules        per-line scan   severity changes    vscode diagnostics
+   Dockerfile detect: OpenPanel  OpenPanel rules   + context       'off' filtering</code></pre>
+<p>The unified <code>analyzeAuto()</code> entry point (in <code>packages/core/src/analyze.ts</code>) handles platform detection, analyzer dispatch, and rule overrides. Both the CLI and VS Code extension use this single function.</p>
+<h3>Analyzer Factory Pattern</h3>
+<p>All three analyzers share a common factory (<code>createAnalyzer</code>) that:</p>
+<ol><li>Merges user options with defaults</li><li>Filters rules based on platform, severity, and version constraints</li><li>Constructs a <code>RuleContext</code> with pre-split lines and config</li><li>Runs each applicable rule against the code</li><li>Sorts results by line number and column</li><li>Returns <code>LintResult[]</code></li></ol>
+<p>Version filtering is platform-specific:</p>
+<ul><li>PHP rules filter by <code>minPhpVersion</code> (e.g., <code>php-compat-each</code> only fires for PHP &gt;= 8.0)</li><li>Perl rules filter by <code>minCpanelVersion</code></li><li>OpenPanel rules have no version constraints (always active)</li></ul>
+<h2>Rule Architecture</h2>
+<h3>Rule Interface</h3>
+<pre><code>interface Rule {
+  id: string;                           // e.g., 'security-sql-injection'
+  description: string;                  // Human-readable
+  severity: 'error' | 'warning' | 'info';
+  category: string;                     // 'security', 'compatibility', 'best-practice'
+  platform: 'whmcs' | 'cpanel' | 'openpanel' | 'all';
+  check: (context: RuleContext) =&gt; LintResult[];
+  minPhpVersion?: PhpVersion;           // Version constraint
+  minWhmcsVersion?: WhmcsVersion;
+  minCpanelVersion?: CpanelVersion;
+}</code></pre>
+<h3>Detection Approach</h3>
+<p>All rules use regex-based pattern matching on code strings:</p>
+<ul><li><strong>Simple patterns</strong> (90%): Single-line regex matching (e.g., <code>\beach\s*\(</code>)</li><li><strong>Context-aware</strong> (8%): Multi-line window analysis (check surrounding lines)</li><li><strong>Structural</strong> (2%): File-level analysis (check for presence/absence of constructs)</li></ul>
+<p>No PHP or Perl runtime is required. No code is ever executed.</p>
+<h3>False Positive Mitigation</h3>
+<ol><li>Comment detection: skip lines starting with <code>//</code>, <code>#</code>, <code>/*</code>, <code>*</code></li><li>String exclusion: patterns in quoted strings are filtered</li><li>File-type validation: rules only run on relevant file types</li><li>Context validation: additional evidence required (e.g., WHMCS module structure)</li></ol>
+<h2>Output Formats</h2>
+<table><thead><tr><th>Format</th><th>Use Case</th><th>Standard</th></tr></thead><tbody><tr><td>text</td><td>Human-readable CLI output</td><td>ESLint-style</td></tr><tr><td>json</td><td>Machine processing, piping</td><td>JSON array</td></tr><tr><td>sarif</td><td>GitHub Code Scanning, CI/CD</td><td>SARIF 2.1.0</td></tr></tbody></table>
+<h2>Configuration System</h2>
+<h3>.hostinglintrc.json</h3>
+<pre><code>{
+  &quot;rules&quot;: { &quot;whmcs-license-check&quot;: &quot;off&quot; },
+  &quot;phpVersion&quot;: &quot;8.1&quot;,
+  &quot;ignore&quot;: [&quot;vendor/**&quot;],
+  &quot;preset&quot;: &quot;recommended&quot;
+}</code></pre>
+<h3>Inline Disabling</h3>
+<pre><code>// hostinglint-disable-next-line security-sql-injection
+// hostinglint-disable rule-id
+// hostinglint-enable rule-id</code></pre>
+<h3>Presets</h3>
+<ul><li><strong>recommended</strong>: balanced error/warning configuration</li><li><strong>strict</strong>: all rules at error level</li><li><strong>security-only</strong>: only security rules enabled</li></ul>
+<h2>VS Code Extension</h2>
+<h3>Architecture: Direct API (no LSP)</h3>
+<p>The extension calls <code>analyzeAuto()</code> from <code>@hostinglint/core</code> directly in the VS Code extension host process. Since core analysis is synchronous and sub-millisecond per file, a Language Server Protocol layer is unnecessary overhead.</p>
+<h3>Module Overview</h3>
+<table><thead><tr><th>Module</th><th>Responsibility</th></tr></thead><tbody><tr><td><code>extension.ts</code></td><td>Lifecycle (activate/deactivate), event listeners, provider registration</td></tr><tr><td><code>diagnostics.ts</code></td><td>Calls <code>analyzeAuto()</code>, converts <code>LintResult[]</code> → <code>vscode.Diagnostic[]</code>, maintains result store</td></tr><tr><td><code>config.ts</code></td><td>Config cache per workspace folder, reads <code>.hostinglintrc.json</code> via core's <code>findConfig()</code>, falls back to VS Code settings</td></tr><tr><td><code>code-actions.ts</code></td><td>Quick fixes from <code>fixAction</code>, &quot;disable rule for this line&quot; for PHP/Perl</td></tr><tr><td><code>hover.ts</code></td><td>Rule details on hover (ID, category, platform, severity, fix suggestion)</td></tr><tr><td><code>logger.ts</code></td><td><code>OutputChannel('HostingLint')</code> for error logging</td></tr></tbody></table>
+<h3>Key Design Decisions</h3>
+<ul><li><strong>Config cache per workspace folder</strong> — <code>findConfig()</code> result is cached by workspace folder URI, invalidated on <code>.hostinglintrc.json</code> change via <code>FileSystemWatcher</code></li><li><strong>Result store (<code>Map&lt;string, LintResult[]&gt;</code>)</strong> — Keyed by document URI, used by hover and code actions to look up full rule info without re-analyzing</li><li><strong>Debounced onType analysis</strong> — 300ms debounce prevents excessive analysis during rapid typing</li><li><strong>End-of-line diagnostic range</strong> — Underlines extend from the issue column to end of line, avoiding word-boundary ambiguity</li><li><strong>Disable-line for PHP/Perl only</strong> — Dockerfiles and YAML have no inline comment standard for disable directives</li><li><strong><code>setTimeout(fn, 0)</code> batching</strong> — Config change re-analysis of all open documents is batched to avoid blocking</li></ul>
+<h3>Build</h3>
+<p>The extension is bundled with esbuild into a single CJS file (<code>dist/extension.js</code>), with <code>vscode</code> as an external dependency. The bundle is ~72KB.</p>
+<h2>Performance</h2>
+<ul><li>Analysis is sub-millisecond per file (0.13 ms average, benchmarked)</li><li>Target: &lt; 100 ms per 1000 lines with 50+ rules</li><li>Regex patterns are compiled once, reused across lines</li><li>Early returns skip irrelevant files (e.g., <code>.php</code> rules skip <code>.pl</code> files)</li></ul>
+<h2>Security Model</h2>
+<ul><li><strong>Read-only</strong>: HostingLint never modifies analyzed files</li><li><strong>No execution</strong>: Code is analyzed as strings, never evaluated</li><li><strong>No runtime</strong>: No PHP or Perl interpreter required</li><li><strong>Pure functions</strong>: Rules have no side effects, no network calls</li><li><strong>Sandboxed plugins</strong>: Plugin rules validated against strict interface</li></ul>
+<hr />
+<p>*Prepared for NLnet NGI Zero Commons Fund Application, February 2026*</p>
+</body>
+</html>

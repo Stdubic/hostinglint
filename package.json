@@ -17,7 +17,9 @@
     "test:ci": "vitest run --coverage --reporter=default --reporter=json --outputFile=test-results.json",
     "validate": "npm run lint:ci && npm run typecheck && npm run test:ci && npm run build",
     "precommit": "npm run lint && npm run typecheck && npm run test",
-    "clean": "rm -rf packages/*/dist"
+    "clean": "rm -rf packages/*/dist",
+    "docs:nlnet-print": "node scripts/build-nlnet-print-html.mjs",
+    "docs:nlnet-pdf": "node scripts/build-nlnet-print-html.mjs && node scripts/nlnet-html-to-pdf.mjs"
   },
   "engines": {
     "node": ">=20.0.0"

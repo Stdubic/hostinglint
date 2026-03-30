@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MILESTONE ROADMAP</title>
+  <style>
+  @page { margin: 1.2cm; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    font-size: 11pt;
+    line-height: 1.45;
+    color: #111;
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 0.5rem 1rem;
+  }
+  h1 { font-size: 1.6rem; margin-top: 1.2rem; }
+  h2 { font-size: 1.25rem; margin-top: 1.5rem; border-bottom: 1px solid #ddd; padding-bottom: 0.2rem; }
+  h3 { font-size: 1.05rem; margin-top: 1rem; }
+  table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; font-size: 10pt; }
+  th, td { border: 1px solid #ccc; padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+  th { background: #f4f4f4; }
+  pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 9.5pt; }
+  pre {
+    background: #f8f8f8;
+    border: 1px solid #e0e0e0;
+    padding: 0.6rem 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+  code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; }
+  pre code { background: none; padding: 0; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 1.25rem 0; }
+  ul, ol { margin: 0.5rem 0 0.5rem 1.25rem; }
+  li { margin: 0.25rem 0; }
+  p { margin: 0.5rem 0; }
+  .meta { color: #444; font-size: 10pt; }
+</style>
+</head>
+<body>
+<h1>HostingLint Milestone Roadmap</h1>
+<p><strong>For:</strong> NLnet NGI Zero Commons Fund Application</p>
+<p><strong>Date:</strong> February 2026</p>
+<p><strong>Total Budget:</strong> EUR 35,000</p>
+<p><strong>Timeline:</strong> 12 months (Q2 2026 - Q1 2027)</p>
+<hr />
+<h2>Milestone Overview</h2>
+<table><thead><tr><th>Milestone</th><th>Description</th><th>Hours</th><th>Cost (EUR)</th><th>Timeline</th></tr></thead><tbody><tr><td>M1</td><td>Rule Engine Expansion</td><td>120</td><td>6,000</td><td>Months 1-3</td></tr><tr><td>M2</td><td>Auto-Fix and Plugin System</td><td>140</td><td>7,000</td><td>Months 3-5</td></tr><tr><td>M3</td><td>Developer Experience</td><td>100</td><td>5,000</td><td>Months 5-7</td></tr><tr><td>M4</td><td>Documentation and Community</td><td>80</td><td>4,000</td><td>Months 7-9</td></tr><tr><td>M5</td><td>Security and Quality</td><td>80</td><td>4,000</td><td>Months 9-10</td></tr><tr><td>M6</td><td>v1.0 Release and Ecosystem</td><td>100</td><td>5,000</td><td>Months 10-12</td></tr><tr><td>PM</td><td>Project Management</td><td>80</td><td>4,000</td><td>Throughout</td></tr><tr><td><strong>Total</strong></td><td></td><td><strong>700</strong></td><td><strong>35,000</strong></td><td></td></tr></tbody></table>
+<hr />
+<h2>M1: Rule Engine Expansion (120 hours, EUR 6,000)</h2>
+<p><strong>Objective:</strong> Expand from 28 to 50+ rules across all three platforms.</p>
+<h3>Deliverables</h3>
+<ol><li><strong>8 Priority 1 rules</strong> — High-impact security vulnerabilities</li><li><code>security-php-deserialization</code> — Insecure unserialize() (CWE-502)</li><li><code>security-php-ssrf</code> — Server-side request forgery (CWE-918)</li><li><code>security-php-weak-crypto</code> — Weak password hashing (CWE-327)</li><li><code>security-perl-sql-injection</code> — SQL injection via interpolation (CWE-89)</li><li><code>security-perl-cmd-injection</code> — Command injection detection (CWE-78)</li><li><code>openpanel-security-bind-mounts</code> — Dangerous host path mounts</li><li><code>openpanel-security-secrets-in-env</code> — Secrets in ENV variables</li><li><code>security-insecure-random</code> — Weak RNG for security purposes</li></ol>
+<ol><li><strong>6 Priority 2 rules</strong> — PHP 8.2/8.3 compatibility</li><li><code>php-compat-dynamic-properties</code> — Deprecated in PHP 8.2</li><li><code>php-compat-utf8-encode</code> — Removed in PHP 8.2</li><li><code>php-compat-dollar-brace</code> — Deprecated in PHP 8.2</li><li><code>php-compat-null-to-internal</code> — Deprecated in PHP 8.1</li><li><code>php-compat-implicit-float-conversion</code> — PHP 8.1 change</li><li><code>php-compat-serializable-interface</code> — Deprecated in PHP 8.1</li></ol>
+<ol><li><strong>4 Priority 3 rules</strong> — WHMCS 8.11-8.13 specific</li><li><code>whmcs-payment-gateway-deprecated</code></li><li><code>whmcs-capsule-orm-migration</code></li><li><code>whmcs-hook-facade</code></li><li><code>whmcs-strict-types</code></li></ol>
+<ol><li><strong>4+ Priority 4-5 rules</strong> — cPanel UAPI + OpenPanel container</li><li><code>perl-cpanel-api1-functions</code></li><li><code>perl-cpanel-api2-to-uapi</code></li><li><code>openpanel-security-host-network</code></li><li><code>openpanel-security-latest-tag</code></li></ol>
+<h3>Success Criteria</h3>
+<ul><li>50+ total rules implemented and tested</li><li>100% test coverage on all rule files</li><li>&lt; 200 ms analysis time for 1000 lines</li><li>Vulnerable examples for all new rules</li></ul>
+<hr />
+<h2>M2: Auto-Fix and Plugin System (140 hours, EUR 7,000)</h2>
+<p><strong>Objective:</strong> Enable automated code fixes and community rule contributions.</p>
+<h3>Deliverables</h3>
+<ol><li><strong>Auto-fix engine</strong> — Machine-applicable fixes for 30+ rules</li><li><code>FixAction</code> interface with range-based replacements</li><li><code>--fix</code> CLI flag for automatic application</li><li>Interactive fix preview mode</li><li>Dry-run support</li></ol>
+<ol><li><strong>Plugin system</strong> — Load external rule packages</li><li>Plugin interface: <code>HostingLintPlugin { name, rules }</code></li><li>npm package loading: <code>plugins: ['@hostinglint-rules/my-rules']</code></li><li>Local file loading for development</li><li>Plugin validation and sandboxing</li></ol>
+<ol><li><strong>Shared configurations</strong> — Preset rule sets</li><li><code>recommended</code> — balanced defaults</li><li><code>strict</code> — all rules at error level</li><li><code>security-only</code> — security rules only</li><li>Extendable presets via config</li></ol>
+<h3>Success Criteria</h3>
+<ul><li>30+ rules with working auto-fix</li><li>Plugin API documented with example package</li><li>3 preset configurations published</li></ul>
+<hr />
+<h2>M3: Developer Experience (100 hours, EUR 5,000)</h2>
+<p><strong>Objective:</strong> Bring HostingLint into developer workflows.</p>
+<h3>Deliverables</h3>
+<ol><li><strong>VS Code extension</strong> — inline warnings, quick fixes</li><li><strong>PhpStorm plugin</strong> — via Language Server Protocol</li><li><strong>Pre-commit hook</strong> — <code>hostinglint check --staged</code></li><li><strong>GitHub Action</strong> — <code>hostinglint/action@v1</code></li></ol>
+<h3>Success Criteria</h3>
+<ul><li>VS Code extension published on marketplace</li><li>Pre-commit hook documented and tested</li><li>GitHub Action with SARIF upload</li></ul>
+<hr />
+<h2>M4: Documentation and Community (80 hours, EUR 4,000)</h2>
+<p><strong>Objective:</strong> Comprehensive documentation for users and contributors.</p>
+<h3>Deliverables</h3>
+<ol><li><strong>Documentation website</strong> — GitHub Pages, auto-generated rule catalog</li><li><strong>Rule documentation</strong> — each rule with examples, fix suggestions, SARIF output</li><li><strong>Migration guides</strong> — PHP 7 to 8, API1 to UAPI, cPanel to OpenPanel</li><li><strong>Video tutorials</strong> — CLI walkthrough, CI/CD setup, rule development</li></ol>
+<h3>Success Criteria</h3>
+<ul><li>Documentation website live at hostinglint.dev or GitHub Pages</li><li>All 50+ rules documented with examples</li><li>3+ migration guides published</li></ul>
+<hr />
+<h2>M5: Security and Quality (80 hours, EUR 4,000)</h2>
+<p><strong>Objective:</strong> Security audit and quality assurance.</p>
+<h3>Deliverables</h3>
+<ol><li><strong>Security audit</strong> — via NLnet/Radically Open Security</li><li><strong>Accessibility review</strong> — CLI output for screen readers</li><li><strong>Performance optimization</strong> — benchmarking, profiling, caching</li><li><strong>Integration testing</strong> — real-world WHMCS/cPanel/OpenPanel modules</li></ol>
+<h3>Success Criteria</h3>
+<ul><li>Security audit completed with all findings addressed</li><li>CLI output accessible (WCAG-compatible text)</li><li>Performance under target with 50+ rules</li></ul>
+<hr />
+<h2>M6: v1.0 Release and Ecosystem (100 hours, EUR 5,000)</h2>
+<p><strong>Objective:</strong> Stable release and ecosystem integration.</p>
+<h3>Deliverables</h3>
+<ol><li><strong>npm v1.0 release</strong> — <code>@hostinglint/core</code> and <code>hostinglint</code> CLI</li><li><strong>ModuleForge integration</strong> — updated @hostinglint/core dependency</li><li><strong>Community governance</strong> — GOVERNANCE.md, maintainer guidelines</li><li><strong>Ecosystem integrations</strong> — cPanel DevKit, WHMCS Marketplace mentions</li></ol>
+<h3>Success Criteria</h3>
+<ul><li>v1.0.0 published on npm</li><li>Stable API with semver guarantees</li><li>Community governance model documented</li></ul>
+<hr />
+<h2>Timeline Visualization</h2>
+<pre><code>2026
+Q2 (Apr-Jun)    ████████████ M1: Rule Expansion (50+ rules)
+                      ██████████████ M2: Auto-Fix + Plugins
+Q3 (Jul-Sep)                  ██████████ M3: IDE Extensions
+                                    ████████ M4: Documentation
+Q4 (Oct-Dec)                              ██████ M5: Security Audit
+                                                ████████ M6: v1.0 Release
+2027
+Q1 (Jan)        PM: Project Management (throughout) ────────────────────►</code></pre>
+<hr />
+<p>*Prepared for NLnet NGI Zero Commons Fund Application, February 2026*</p>
+</body>
+</html>

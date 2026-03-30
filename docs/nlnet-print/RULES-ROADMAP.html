@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RULES ROADMAP</title>
+  <style>
+  @page { margin: 1.2cm; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    font-size: 11pt;
+    line-height: 1.45;
+    color: #111;
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 0.5rem 1rem;
+  }
+  h1 { font-size: 1.6rem; margin-top: 1.2rem; }
+  h2 { font-size: 1.25rem; margin-top: 1.5rem; border-bottom: 1px solid #ddd; padding-bottom: 0.2rem; }
+  h3 { font-size: 1.05rem; margin-top: 1rem; }
+  table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; font-size: 10pt; }
+  th, td { border: 1px solid #ccc; padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+  th { background: #f4f4f4; }
+  pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 9.5pt; }
+  pre {
+    background: #f8f8f8;
+    border: 1px solid #e0e0e0;
+    padding: 0.6rem 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+  code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; }
+  pre code { background: none; padding: 0; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 1.25rem 0; }
+  ul, ol { margin: 0.5rem 0 0.5rem 1.25rem; }
+  li { margin: 0.25rem 0; }
+  p { margin: 0.5rem 0; }
+  .meta { color: #444; font-size: 10pt; }
+</style>
+</head>
+<body>
+<h1>HostingLint Rules Roadmap: Comprehensive Implementation Plan</h1>
+<p><strong>Document Version:</strong> 1.0</p>
+<p><strong>Date:</strong> February 8, 2026</p>
+<p><strong>Purpose:</strong> Technical blueprint for expanding HostingLint from 28 to 50+ rules for NLnet NGI Zero Commons Fund grant application</p>
+<hr />
+<h2>Executive Summary</h2>
+<p>This document provides a comprehensive roadmap for expanding HostingLint's static analysis capabilities from the current <strong>28 rules</strong> to <strong>50+ rules</strong> as part of the NLnet grant Milestone 1 (Rule engine expansion).</p>
+<p><strong>Current Distribution:</strong></p>
+<ul><li>PHP/WHMCS: 13 rules</li><li>Perl/cPanel: 8 rules</li><li>OpenPanel: 5 rules</li><li>Cross-platform: 2 rules</li></ul>
+<p><strong>Proposed Expansion:</strong></p>
+<ul><li><strong>22+ new rules</strong> targeting high-impact security vulnerabilities, modern compatibility issues (PHP 8.2/8.3, WHMCS 8.11-8.13, cPanel UAPI), and Docker container security</li><li>Priority focus on vulnerabilities with documented CVEs from 2024-2025</li><li>100% test coverage requirement for all new rules</li></ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol><li>[Current Rule Inventory](#1-current-rule-inventory-28-rules)</li><li>[Proposed New Rules](#2-proposed-new-rules-by-priority)</li><li>[Rule Implementation Specifications](#3-rule-implementation-specifications)</li><li>[Technical Implementation Strategy](#4-technical-implementation-strategy)</li><li>[Grant Milestone Mapping](#5-grant-milestone-mapping)</li><li>[Testing Strategy](#6-testing-strategy)</li><li>[Performance Considerations](#7-performance-considerations)</li><li>[Community Contribution Model](#8-community-contribution-model)</li><li>[Appendices](#9-appendices)</li></ol>
+<hr />
+<h2>1. Current Rule Inventory (28 Rules)</h2>
+<h3>1.1 PHP/WHMCS Rules (13 rules)</h3>
+<p>#### Compatibility (4 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th><th>Min PHP Version</th></tr></thead><tbody><tr><td><code>php-compat-each</code></td><td>each() removed in PHP 8.0</td><td>error</td><td>8.0</td></tr><tr><td><code>php-compat-create-function</code></td><td>create_function() removed in PHP 8.0</td><td>error</td><td>8.0</td></tr><tr><td><code>php-compat-mysql-functions</code></td><td>mysql_* functions removed in PHP 7.0</td><td>error</td><td>7.0</td></tr><tr><td><code>php-compat-curly-braces</code></td><td>Curly brace array access deprecated PHP 7.4</td><td>error</td><td>7.4</td></tr></tbody></table>
+<p>#### Security (3 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th><th>Detection Pattern</th></tr></thead><tbody><tr><td><code>security-sql-injection</code></td><td>SQL injection via unsanitized input</td><td>error</td><td>$_GET/$_POST/$_REQUEST in SQL</td></tr><tr><td><code>security-xss</code></td><td>XSS via unescaped echo/print</td><td>error</td><td>echo/print with user input</td></tr><tr><td><code>security-path-traversal</code></td><td>Path traversal in file operations</td><td>error</td><td>User input in file functions</td></tr></tbody></table>
+<p>#### WHMCS-Specific (6 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th><th>Category</th></tr></thead><tbody><tr><td><code>whmcs-metadata</code></td><td>Missing MetaData() function (required WHMCS 8.0+)</td><td>warning</td><td>compatibility</td></tr><tr><td><code>whmcs-deprecated</code></td><td>Deprecated WHMCS functions (select_query, etc.)</td><td>warning</td><td>compatibility</td></tr><tr><td><code>whmcs-hook-error-handling</code></td><td>Missing try/catch in hook callbacks</td><td>warning</td><td>best-practice</td></tr><tr><td><code>whmcs-config-function</code></td><td>Missing _Config() in provisioning modules</td><td>warning</td><td>compatibility</td></tr><tr><td><code>whmcs-license-check</code></td><td>Missing license validation</td><td>info</td><td>best-practice</td></tr><tr><td><code>whmcs-return-format</code></td><td>Incorrect return format in module functions</td><td>warning</td><td>best-practice</td></tr></tbody></table>
+<h3>1.2 Perl/cPanel Rules (8 rules)</h3>
+<p>#### Compatibility (2 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th></tr></thead><tbody><tr><td><code>perl-cpanel-api-version</code></td><td>Deprecated cPanel API1 usage</td><td>warning</td></tr><tr><td><code>perl-deprecated-modules</code></td><td>Deprecated Perl modules (CGI, Switch, etc.)</td><td>warning</td></tr></tbody></table>
+<p>#### Security (3 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th></tr></thead><tbody><tr><td><code>perl-security-taint</code></td><td>Untainted external input in system/exec</td><td>error</td></tr><tr><td><code>perl-file-permissions</code></td><td>Insecure file permissions (chmod 777)</td><td>warning</td></tr><tr><td><code>perl-input-validation</code></td><td>CGI params without validation</td><td>warning</td></tr></tbody></table>
+<p>#### Best Practices (2 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th></tr></thead><tbody><tr><td><code>perl-strict-warnings</code></td><td>Missing use strict/warnings</td><td>warning</td></tr><tr><td><code>perl-error-handling</code></td><td>Critical operations without eval/die</td><td>warning</td></tr></tbody></table>
+<h3>1.3 OpenPanel Rules (5 rules)</h3>
+<p>#### Compatibility (1 rule)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th></tr></thead><tbody><tr><td><code>openpanel-api-versioning</code></td><td>Missing apiVersion in manifest</td><td>warning</td></tr></tbody></table>
+<p>#### Security (2 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th></tr></thead><tbody><tr><td><code>openpanel-security-capabilities</code></td><td>Excessive Docker capabilities/privileged mode</td><td>error</td></tr><tr><td><code>openpanel-cli-validation</code></td><td>Missing input validation in CLI scripts</td><td>warning</td></tr></tbody></table>
+<p>#### Docker Best Practices (2 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th></tr></thead><tbody><tr><td><code>openpanel-dockerfile</code></td><td>Missing USER directive or HEALTHCHECK</td><td>warning</td></tr><tr><td><code>openpanel-resource-limits</code></td><td>Missing resource limits in docker-compose</td><td>warning</td></tr></tbody></table>
+<h3>1.4 Cross-Platform Rules (2 rules)</h3>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th><th>Platforms</th></tr></thead><tbody><tr><td><code>security-hardcoded-credentials</code></td><td>Hardcoded passwords/API keys</td><td>error</td><td>all</td></tr><tr><td><code>security-eval-usage</code></td><td>Usage of eval() function</td><td>warning</td><td>all</td></tr><tr><td><code>best-practice-todo-fixme</code></td><td>TODO/FIXME comments</td><td>info</td><td>all</td></tr></tbody></table>
+<hr />
+<h2>2. Proposed New Rules (By Priority)</h2>
+<h3>Priority 1: High-Impact Security Rules (8 rules)</h3>
+<p>Based on 2024-2025 vulnerability trends and CVE analysis:</p>
+<p>#### P1.1 PHP Security Rules (3 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Justification</th><th>CVE Reference</th></tr></thead><tbody><tr><td><code>security-php-deserialization</code></td><td>Insecure unserialize() usage</td><td>Remote code execution vector, OWASP Top 10</td><td>CVE-2024-4577 context</td></tr><tr><td><code>security-php-ssrf</code></td><td>Server-side request forgery via user-controlled URLs</td><td>Common in WHMCS API integrations</td><td>-</td></tr><tr><td><code>security-php-weak-crypto</code></td><td>Weak crypto algorithms (MD5, SHA1 for passwords)</td><td>Password cracking, NIST deprecation</td><td>-</td></tr></tbody></table>
+<p><strong>Implementation Details:</strong></p>
+<pre><code>// security-php-deserialization
+Pattern: \bunserialize\s*\(\s*\$(?:_GET|_POST|_REQUEST|_COOKIE)
+Message: &quot;Insecure deserialization: never unserialize() untrusted data&quot;
+Fix: &quot;Use JSON or validated serialization formats&quot;
+
+// security-php-ssrf
+Pattern: \b(?:file_get_contents|curl_exec|fopen)\s*\([^)]*\$(?:_GET|_POST|_REQUEST)\[
+Message: &quot;Potential SSRF: user input controls URL in HTTP request&quot;
+Fix: &quot;Validate URLs against whitelist, use allow_url_fopen = Off&quot;
+
+// security-php-weak-crypto
+Pattern: \b(?:md5|sha1)\s*\(\s*\$(?:password|passwd|pwd)
+Message: &quot;Weak password hashing: MD5/SHA1 are not suitable for passwords&quot;
+Fix: &quot;Use password_hash() with PASSWORD_ARGON2ID or PASSWORD_BCRYPT&quot;</code></pre>
+<p>#### P1.2 Perl Security Rules (2 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Justification</th></tr></thead><tbody><tr><td><code>security-perl-sql-injection</code></td><td>SQL injection via string interpolation</td><td>Not covered by current taint rule</td></tr><tr><td><code>security-perl-cmd-injection</code></td><td>Enhanced command injection detection</td><td>Expand beyond current taint patterns</td></tr></tbody></table>
+<pre><code># security-perl-sql-injection
+Pattern: \$dbh-&gt;(?:do|selectall|selectrow).*\$
+Message: &quot;Potential SQL injection: use placeholders with execute()&quot;
+Fix: &quot;my $sth = $dbh-&gt;prepare('... WHERE id = ?'); $sth-&gt;execute($id);&quot;
+
+# security-perl-cmd-injection
+Pattern: qx\{.*\$|system\s*\([^)]*\.\s*\$
+Message: &quot;Command injection via string concatenation&quot;
+Fix: &quot;Use IPC::Run or pass arguments as list: system('cmd', $arg1, $arg2)&quot;</code></pre>
+<p>#### P1.3 OpenPanel Security Rules (2 rules)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Justification</th><th>CVE Reference</th></tr></thead><tbody><tr><td><code>openpanel-security-bind-mounts</code></td><td>Dangerous host path bind mounts</td><td>Container escape vector</td><td>CVE-2025-9074</td></tr><tr><td><code>openpanel-security-secrets-in-env</code></td><td>Secrets in ENV variables</td><td>Exposed via docker inspect</td><td>CVE-2025-3911</td></tr></tbody></table>
+<pre><code># openpanel-security-bind-mounts
+Pattern: - /:/host|/proc:/|/sys:/|/etc:/|/var/run/docker.sock
+Message: &quot;Dangerous bind mount: mounting sensitive host paths enables container escape&quot;
+Fix: &quot;Use named volumes or limit mounts to specific application directories&quot;
+
+# openpanel-security-secrets-in-env
+Pattern: (?:PASSWORD|SECRET|TOKEN|API_KEY).*=.*[a-zA-Z0-9]{8,}
+Message: &quot;Potential secret in environment variable (visible via docker inspect)&quot;
+Fix: &quot;Use Docker secrets or external secret management (HashiCorp Vault, AWS Secrets Manager)&quot;</code></pre>
+<p>#### P1.4 Cross-Platform Security (1 rule)</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Justification</th></tr></thead><tbody><tr><td><code>security-insecure-random</code></td><td>Weak random number generation for security</td><td>Predictable tokens, session IDs</td></tr></tbody></table>
+<pre><code>// Cross-language patterns
+PHP:    \b(?:rand|mt_rand|srand)\s*\(.*(?:token|session|password|key|salt)
+Perl:   \brand\s*\(.*(?:token|session|password|key)
+Python: random\.randint.*(?:token|session|password|key)
+
+Message: &quot;Weak RNG for security purposes: use cryptographically secure random&quot;
+Fix:
+  PHP: &quot;Use random_bytes() or random_int() for security tokens&quot;
+  Perl: &quot;Use Crypt::Random::Source or /dev/urandom&quot;
+  Python: &quot;Use secrets module instead of random&quot;</code></pre>
+<hr />
+<h3>Priority 2: PHP 8.2/8.3 Compatibility (6 rules)</h3>
+<p>Based on PHP deprecation research and eusonlito.github.io/php-changes-cheatsheet:</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>PHP Version</th><th>Severity</th></tr></thead><tbody><tr><td><code>php-compat-dynamic-properties</code></td><td>Dynamic properties without #[AllowDynamicProperties]</td><td>8.2</td><td>warning</td></tr><tr><td><code>php-compat-utf8-encode</code></td><td>utf8_encode()/utf8_decode() removed</td><td>8.2</td><td>error</td></tr><tr><td><code>php-compat-dollar-brace</code></td><td>&quot;${var}&quot; string interpolation deprecated</td><td>8.2</td><td>warning</td></tr><tr><td><code>php-compat-null-to-internal</code></td><td>Passing null to non-nullable internal function params</td><td>8.1</td><td>warning</td></tr><tr><td><code>php-compat-implicit-float-conversion</code></td><td>Implicit float to int conversions losing precision</td><td>8.1</td><td>info</td></tr><tr><td><code>php-compat-serializable-interface</code></td><td>Serializable interface deprecated</td><td>8.1</td><td>warning</td></tr></tbody></table>
+<p><strong>Implementation Details:</strong></p>
+<pre><code>// php-compat-dynamic-properties (PHP 8.2)
+Pattern: \$this-&gt;\w+\s*=.*(?!__construct|__set)
+Context: Class without #[AllowDynamicProperties] attribute
+Message: &quot;Dynamic property creation deprecated in PHP 8.2&quot;
+Fix: &quot;Declare property in class or add #[\\AllowDynamicProperties] attribute&quot;
+
+// php-compat-utf8-encode (PHP 8.2)
+Pattern: \b(?:utf8_encode|utf8_decode)\s*\(
+Message: &quot;utf8_encode()/utf8_decode() removed in PHP 8.2&quot;
+Fix: &quot;Use mb_convert_encoding($str, 'UTF-8', 'ISO-8859-1')&quot;
+
+// php-compat-dollar-brace (PHP 8.2)
+Pattern: &quot;\$\{[^}]+\}&quot;
+Message: &quot;${var} string interpolation deprecated in PHP 8.2&quot;
+Fix: &quot;Use {$var} or concatenation instead&quot;
+
+// php-compat-null-to-internal (PHP 8.1)
+Pattern: \b(?:str_contains|str_starts_with|str_ends_with|htmlspecialchars)\s*\(\s*null
+Message: &quot;Passing null to non-nullable parameter deprecated in PHP 8.1&quot;
+Fix: &quot;Explicitly check for null: if ($str !== null) { htmlspecialchars($str); }&quot;
+
+// php-compat-serializable-interface (PHP 8.1)
+Pattern: implements\s+.*\bSerializable\b
+Message: &quot;Serializable interface deprecated in PHP 8.1&quot;
+Fix: &quot;Implement __serialize() and __unserialize() magic methods instead&quot;</code></pre>
+<hr />
+<h3>Priority 3: WHMCS 8.11-8.13 Specific (4 rules)</h3>
+<p>Based on WHMCS release notes and API changes:</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>WHMCS Version</th><th>Severity</th></tr></thead><tbody><tr><td><code>whmcs-payment-gateway-deprecated</code></td><td>Deprecated payment gateway modules</td><td>8.11+</td><td>warning</td></tr><tr><td><code>whmcs-capsule-orm-migration</code></td><td>Direct DB queries vs. Capsule ORM</td><td>8.0+</td><td>info</td></tr><tr><td><code>whmcs-hook-facade</code></td><td>Old-style add_hook vs. Hook facade</td><td>8.0+</td><td>info</td></tr><tr><td><code>whmcs-strict-types</code></td><td>Missing strict type declarations</td><td>8.0+</td><td>info</td></tr></tbody></table>
+<p><strong>Implementation Details:</strong></p>
+<pre><code>// whmcs-payment-gateway-deprecated (WHMCS 8.11+)
+Pattern: paypalbsc|paypalcheckout|modulomoip
+Message: &quot;Deprecated payment gateway: PayPal Basic (8.11), Modulo Moip (8.13)&quot;
+Fix: &quot;Migrate to PayPal Payments module or alternative gateway&quot;
+
+// whmcs-capsule-orm-migration (WHMCS 8.0+)
+Pattern: \b(?:select_query|insert_query|update_query|full_query)\s*\(
+Context: Could use Capsule ORM instead
+Message: &quot;Consider migrating to WHMCS Capsule ORM for modern database operations&quot;
+Fix: &quot;use WHMCS\\Database\\Capsule; Capsule::table('table')-&gt;where(...)-&gt;get();&quot;
+
+// whmcs-hook-facade (WHMCS 8.0+)
+Pattern: add_hook\s*\(\s*['&quot;][^'&quot;]+['&quot;]
+Message: &quot;Consider using WHMCS Hook facade for cleaner hook registration&quot;
+Fix: &quot;use WHMCS\\Module\\Hook; Hook::add('HookName', 1, function($vars) { });&quot;
+
+// whmcs-strict-types (WHMCS 8.0+)
+Pattern: ^&lt;\?php\s*(?!declare\(strict_types=1\))
+Context: WHMCS module file
+Message: &quot;WHMCS 8.0+ modules benefit from declare(strict_types=1)&quot;
+Fix: &quot;Add declare(strict_types=1); after opening &lt;?php tag&quot;</code></pre>
+<hr />
+<h3>Priority 4: cPanel UAPI Migration (3 rules)</h3>
+<p>Based on cPanel API deprecation roadmap (API1 removed since v88):</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th></tr></thead><tbody><tr><td><code>perl-cpanel-api1-functions</code></td><td>Specific API1 functions with UAPI equivalents</td><td>error</td></tr><tr><td><code>perl-cpanel-api2-to-uapi</code></td><td>API2 functions that have UAPI replacements</td><td>info</td></tr><tr><td><code>perl-whm-api1-usage</code></td><td>WHM API1 usage detection</td><td>warning</td></tr></tbody></table>
+<p><strong>Implementation Details:</strong></p>
+<pre><code># perl-cpanel-api1-functions
+Functions: Email::addpop, Email::listpops, Ftp::addftpuser, MySQL::adddb
+Pattern: \$cpapi-&gt;(?:Email|Ftp|MySQL|Postgres|Park|SubDomain)::
+Message: &quot;cPanel API1 function removed in v88+. Use UAPI equivalent&quot;
+Fix mapping:
+  Email::addpop      → Email::add_pop
+  Email::listpops    → Email::list_pops_with_disk
+  Ftp::addftpuser    → Ftp::add_ftp
+  MySQL::adddb       → Mysql::create_database
+
+# perl-cpanel-api2-to-uapi
+Functions with UAPI replacements (advisory only)
+Pattern: \$cpanel_api2-&gt;(?:Email|Ftp|DiskUsage)::
+Message: &quot;API2 function has UAPI equivalent for better performance&quot;
+Fix: &quot;Consider migrating to UAPI for improved performance and features&quot;
+
+# perl-whm-api1-usage
+Pattern: \bWHM::API\s*::\s*(?:accountsummary|createacct|listaccts)
+Message: &quot;WHM API1 usage detected. Migrating to WHM API1 or UAPI recommended&quot;
+Fix: &quot;Use WHM API1 (JSON) or UAPI where available&quot;</code></pre>
+<hr />
+<h3>Priority 5: OpenPanel Container Security (6 rules)</h3>
+<p>Based on Docker CVE-2025-9074, CVE-2025-23266, and container security best practices:</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>CVE Reference</th><th>Severity</th></tr></thead><tbody><tr><td><code>openpanel-security-host-network</code></td><td>Host network mode bypasses isolation</td><td>-</td><td>error</td></tr><tr><td><code>openpanel-security-pid-namespace</code></td><td>Shared PID namespace allows process inspection</td><td>-</td><td>warning</td></tr><tr><td><code>openpanel-security-readonly-rootfs</code></td><td>Missing read-only root filesystem</td><td>-</td><td>info</td></tr><tr><td><code>openpanel-security-image-layers</code></td><td>Credentials in Docker image layers</td><td>CVE-2025-3911</td><td>error</td></tr><tr><td><code>openpanel-security-no-healthcheck</code></td><td>Missing container health monitoring</td><td>-</td><td>warning</td></tr><tr><td><code>openpanel-security-latest-tag</code></td><td>Using :latest tag (non-deterministic)</td><td>-</td><td>warning</td></tr></tbody></table>
+<p><strong>Implementation Details:</strong></p>
+<pre><code># openpanel-security-host-network
+Pattern: network_mode:\s*['&quot;]?host['&quot;]?
+Message: &quot;Host network mode bypasses Docker network isolation&quot;
+Fix: &quot;Use bridge networking with explicit port mappings&quot;
+
+# openpanel-security-pid-namespace
+Pattern: pid:\s*['&quot;]?host['&quot;]?
+Message: &quot;Shared PID namespace allows container to see host processes&quot;
+Fix: &quot;Remove pid: host unless absolutely required for debugging&quot;
+
+# openpanel-security-readonly-rootfs
+Pattern: services:.*(?!read_only:\s*true)
+Message: &quot;Container runs with writable root filesystem&quot;
+Fix: &quot;Add read_only: true and use tmpfs for writable directories&quot;
+
+# openpanel-security-image-layers (Dockerfile)
+Pattern: (?:RUN|ENV|ARG).*(?:PASSWORD|SECRET|TOKEN|API_KEY).*=
+Message: &quot;Potential secret in Docker layer (visible in image history)&quot;
+Fix: &quot;Use multi-stage builds and --mount=type=secret for build secrets&quot;
+
+# openpanel-security-no-healthcheck (Dockerfile)
+Pattern: ^(?!.*HEALTHCHECK)
+Message: &quot;No HEALTHCHECK defined (OpenPanel relies on health checks)&quot;
+Fix: &quot;Add HEALTHCHECK --interval=30s CMD curl -f http://localhost/ || exit 1&quot;
+
+# openpanel-security-latest-tag
+Pattern: FROM\s+\w+:latest|image:\s*\w+:latest
+Message: &quot;Using :latest tag creates non-deterministic builds&quot;
+Fix: &quot;Pin specific version tag (e.g., nginx:1.25.3-alpine)&quot;</code></pre>
+<hr />
+<h3>Priority 6: Advanced Static Analysis (5 rules)</h3>
+<p>More sophisticated patterns for common hosting vulnerabilities:</p>
+<table><thead><tr><th>Rule ID</th><th>Description</th><th>Severity</th><th>Complexity</th></tr></thead><tbody><tr><td><code>security-type-confusion</code></td><td>Type confusion vulnerabilities (loose comparisons)</td><td>warning</td><td>Medium</td></tr><tr><td><code>whmcs-csrf-token</code></td><td>Missing CSRF token validation in forms</td><td>error</td><td>Medium</td></tr><tr><td><code>security-race-condition</code></td><td>Race conditions in file operations</td><td>warning</td><td>High</td></tr><tr><td><code>security-insecure-session</code></td><td>Insecure PHP session configuration</td><td>warning</td><td>Medium</td></tr><tr><td><code>security-http-headers</code></td><td>Missing security headers (CSP, X-Frame-Options)</td><td>info</td><td>Low</td></tr></tbody></table>
+<p><strong>Implementation Details:</strong></p>
+<pre><code>// security-type-confusion
+Pattern: \b(?:==|!=).*\$(?:_GET|_POST|_REQUEST)\[
+Context: Not using === strict comparison
+Message: &quot;Loose comparison with user input enables type juggling attacks&quot;
+Fix: &quot;Use strict comparison (=== or !==) with user input&quot;
+Example: if ($_GET['admin'] == true) // vulnerable to ?admin=1 or ?admin[]=1
+
+// whmcs-csrf-token
+Pattern: &lt;form.*method=[&quot;']post[&quot;'](?!.*csrf)
+Context: WHMCS template or module
+Message: &quot;POST form missing CSRF token validation&quot;
+Fix: &quot;Add {$smarty.session.token} hidden input and validate with check_token()&quot;
+
+// security-race-condition
+Pattern: file_exists\s*\([^)]+\).*(?:fopen|file_put_contents)
+Context: TOCTOU pattern (Time-of-check to time-of-use)
+Message: &quot;Potential race condition: check-then-use file pattern&quot;
+Fix: &quot;Use fopen() with 'x' mode (exclusive creation) or atomic operations&quot;
+
+// security-insecure-session
+Pattern: session_start\s*\(.*(?!secure.*httponly)
+Message: &quot;Insecure session configuration: missing secure/httponly flags&quot;
+Fix: &quot;session_set_cookie_params(['secure' =&gt; true, 'httponly' =&gt; true, 'samesite' =&gt; 'Strict'])&quot;
+
+// security-http-headers
+Pattern: header\s*\(\s*[&quot;']Content-Security-Policy
+Negation check in file (look for absence of CSP header in module output)
+Message: &quot;Missing Content-Security-Policy header&quot;
+Fix: &quot;Add CSP header to prevent XSS: header('Content-Security-Policy: default-src \\'self\\'');&quot;</code></pre>
+<hr />
+<h2>3. Rule Implementation Specifications</h2>
+<h3>3.1 Rule Structure Template</h3>
+<p>Every rule implementation must follow this structure:</p>
+<pre><code>export const ruleName: Rule = {
+  // Required fields
+  id: 'category-platform-description',              // Unique identifier
+  description: 'Human-readable description',        // &lt; 100 chars
+  severity: 'error' | 'warning' | 'info',          // Impact level
+  category: 'security' | 'compatibility' | 'best-practice',
+  platform: 'whmcs' | 'cpanel' | 'openpanel' | 'all',
+
+  // Optional fields
+  minPhpVersion: '8.0',                            // PHP version constraint
+  minWhmcsVersion: '8.11',                         // WHMCS version constraint
+  minCpanelVersion: '132',                         // cPanel version constraint
+
+  // Detection logic
+  check: (context: RuleContext): LintResult[] =&gt; {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    // Pattern matching logic
+    for (let i = 0; i &lt; lines.length; i++) {
+      const match = lines[i].match(/pattern/);
+      if (match &amp;&amp; match.index !== undefined) {
+        results.push({
+          file: filePath,
+          line: i + 1,
+          column: match.index + 1,
+          message: 'Issue description and impact',
+          ruleId: 'category-platform-description',
+          severity: 'error',
+          category: 'security',
+          fix: 'Concrete fix suggestion with code example',
+
+          // Optional: Auto-fix action (M2 milestone)
+          fixAction: {
+            range: {
+              startLine: i + 1,
+              startCol: match.index + 1,
+              endLine: i + 1,
+              endCol: match.index + 1 + match[0].length,
+            },
+            replacement: 'fixed_code',
+            description: 'Replace X with Y',
+          },
+        });
+      }
+    }
+
+    return results;
+  },
+};</code></pre>
+<h3>3.2 Detection Pattern Guidelines</h3>
+<p><strong>Pattern Complexity Levels:</strong></p>
+<ol><li><strong>Simple</strong> (90% of rules): Single-line regex</li></ol>
+<pre><code>   const match = line.match(/\beach\s*\(/);</code></pre>
+<ol><li><strong>Context-Aware</strong> (8% of rules): Multi-line pattern with context</li></ol>
+<pre><code>   const contextBlock = lines.slice(i - 5, i + 5).join('\n');
+   if (/pattern/.test(line) &amp;&amp; !/exception/.test(contextBlock)) {
+     // Report issue
+   }</code></pre>
+<ol><li><strong>Stateful</strong> (2% of rules): Track state across lines</li></ol>
+<pre><code>   let inClassDefinition = false;
+   for (const line of lines) {
+     if (/^class\s+/.test(line)) inClassDefinition = true;
+     if (inClassDefinition &amp;&amp; /pattern/.test(line)) {
+       // Report issue
+     }
+   }</code></pre>
+<h3>3.3 False Positive Mitigation</h3>
+<p><strong>Strategies to reduce false positives:</strong></p>
+<ol><li><strong>Comment Detection</strong>: Skip commented lines</li></ol>
+<pre><code>   if (/^\s*(?:\/\/|#|\/\*|\*)/.test(line)) continue;</code></pre>
+<ol><li><strong>String Literal Detection</strong>: Don't flag patterns in strings</li></ol>
+<pre><code>   // Exclude patterns within quoted strings
+   if (/'[^']*pattern[^']*'/.test(line)) continue;</code></pre>
+<ol><li><strong>Placeholder Detection</strong>: Skip example/placeholder values</li></ol>
+<pre><code>   if (value.includes('example') || value.includes('placeholder')) continue;</code></pre>
+<ol><li><strong>File Type Validation</strong>: Only check relevant files</li></ol>
+<pre><code>   if (!filePath.endsWith('.php') &amp;&amp; !filePath.endsWith('.module')) return [];</code></pre>
+<ol><li><strong>Context Validation</strong>: Require additional evidence</li></ol>
+<pre><code>   const isModuleFile = /function\s+\w+_MetaData/.test(code);
+   if (!isModuleFile) return [];</code></pre>
+<h3>3.4 SARIF Integration</h3>
+<p>All rules must be compatible with SARIF 2.1.0 format for GitHub Code Scanning:</p>
+<pre><code>{
+  &quot;version&quot;: &quot;2.1.0&quot;,
+  &quot;$schema&quot;: &quot;https://json.schemastore.org/sarif-2.1.0.json&quot;,
+  &quot;runs&quot;: [{
+    &quot;tool&quot;: {
+      &quot;driver&quot;: {
+        &quot;name&quot;: &quot;HostingLint&quot;,
+        &quot;rules&quot;: [{
+          &quot;id&quot;: &quot;security-sql-injection&quot;,
+          &quot;shortDescription&quot;: { &quot;text&quot;: &quot;SQL injection vulnerability&quot; },
+          &quot;fullDescription&quot;: { &quot;text&quot;: &quot;Potential SQL injection...&quot; },
+          &quot;help&quot;: {
+            &quot;text&quot;: &quot;Use parameterized queries...&quot;,
+            &quot;markdown&quot;: &quot;## Fix\n\nUse parameterized queries...&quot;
+          },
+          &quot;properties&quot;: {
+            &quot;tags&quot;: [&quot;security&quot;, &quot;sql&quot;, &quot;cwe-89&quot;],
+            &quot;precision&quot;: &quot;high&quot;,
+            &quot;security-severity&quot;: &quot;8.0&quot;
+          }
+        }]
+      }
+    },
+    &quot;results&quot;: [...]
+  }]
+}</code></pre>
+<hr />
+<h2>4. Technical Implementation Strategy</h2>
+<h3>4.1 Current Architecture</h3>
+<p><strong>Regex-Based Static Analysis:</strong></p>
+<ul><li><strong>Advantages</strong>: Fast, portable, no runtime required, safe (no code execution)</li><li><strong>Limitations</strong>: Cannot understand program semantics, limited context awareness</li><li><strong>Coverage</strong>: 90% of security and compatibility issues detectable with regex</li></ul>
+<p><strong>Pattern Matching Approach:</strong></p>
+<pre><code>// Single-line regex (most rules)
+const match = line.match(/\beach\s*\(/);
+
+// Multi-line context (complex rules)
+const contextBlock = lines.slice(i - 10, i + 10).join('\n');
+if (/pattern1/.test(line) &amp;&amp; !/exception/.test(contextBlock)) {
+  // Rule violation
+}
+
+// File-level analysis (structural rules)
+const hasMetaData = /function\s+\w*_MetaData\s*\(/.test(code);</code></pre>
+<h3>4.2 Enhancement Opportunities (M2 Milestone)</h3>
+<p><strong>AST Parsing for Advanced Rules:</strong></p>
+<p>For PHP (using php-parser via WASM):</p>
+<pre><code>import * as phpParser from 'php-parser';
+
+const parser = new phpParser.Engine({
+  parser: { extractDoc: true },
+  ast: { withPositions: true },
+});
+
+const ast = parser.parseCode(code, 'module.php');
+// Traverse AST to detect complex patterns</code></pre>
+<p>Benefits:</p>
+<ul><li><strong>Semantic understanding</strong>: Distinguish between variable assignments and comparisons</li><li><strong>Scope analysis</strong>: Track variable definitions and usage across functions</li><li><strong>Type inference</strong>: Detect type confusion more accurately</li></ul>
+<p>Trade-offs:</p>
+<ul><li><strong>Performance</strong>: AST parsing is 10-50x slower than regex</li><li><strong>Complexity</strong>: Requires parser maintenance and language-specific handling</li><li><strong>Portability</strong>: Need separate parsers for PHP, Perl, Python</li></ul>
+<p><strong>Recommendation for M1</strong>: Stick with regex-based approach (proven, fast, sufficient for 50+ rules)</p>
+<p><strong>Recommendation for M2</strong>: Evaluate AST parsing for 10-15 advanced rules</p>
+<h3>4.3 Performance Optimization Strategies</h3>
+<p><strong>Target: &lt; 100ms for 1000 lines of code</strong></p>
+<ol><li><strong>Early Returns</strong>: Skip irrelevant files</li></ol>
+<pre><code>   if (!filePath.endsWith('.php')) return [];</code></pre>
+<ol><li><strong>Compiled Regex</strong>: Pre-compile patterns outside loop</li></ol>
+<pre><code>   const pattern = /\beach\s*\(/;  // Compile once
+   for (const line of lines) {
+     if (pattern.test(line)) { ... }  // Reuse compiled regex
+   }</code></pre>
+<ol><li><strong>Short-Circuit Evaluation</strong>: Most efficient checks first</li></ol>
+<pre><code>   // Fast check first
+   if (!code.includes('eval')) return [];
+   // Expensive regex only if fast check passes
+   const matches = code.match(/\beval\s*\(/g);</code></pre>
+<ol><li><strong>Parallel Execution</strong>: Run rules concurrently (future enhancement)</li></ol>
+<pre><code>   const results = await Promise.all(
+     rules.map(rule =&gt; rule.check(context))
+   );</code></pre>
+<ol><li><strong>Incremental Analysis</strong>: Only re-analyze changed files (IDE integration)</li></ol>
+<p><strong>Benchmarking Plan:</strong></p>
+<ul><li>Baseline: Current 28 rules on 1000-line WHMCS module</li><li>Target: 50 rules should maintain &lt; 200ms total analysis time</li><li>Test suite: Run against <code>examples/vulnerable/</code> modules in CI</li></ul>
+<hr />
+<h2>5. Grant Milestone Mapping</h2>
+<h3>M1: Rule Engine Expansion (120 hours, €6,000)</h3>
+<p><strong>Deliverables:</strong></p>
+<ul><li>Implement 22 new rules (8 Priority 1, 6 Priority 2, 4 Priority 3, 3 Priority 4, 1 Priority 5)</li><li>Achieve <strong>50+ total rules</strong> across all platforms</li><li>100% test coverage for all new rules</li><li>Vulnerable examples for all new rules in <code>examples/vulnerable/</code></li><li>Updated documentation with rule catalog</li></ul>
+<p><strong>Task Breakdown:</strong></p>
+<ul><li><strong>40 hours</strong>: Priority 1 rules (high-impact security)</li><li><strong>30 hours</strong>: Priority 2 rules (PHP 8.2/8.3 compatibility)</li><li><strong>20 hours</strong>: Priority 3 + 4 rules (WHMCS, cPanel UAPI)</li><li><strong>15 hours</strong>: Test suite expansion and vulnerable examples</li><li><strong>15 hours</strong>: Documentation and rule catalog generation</li></ul>
+<p><strong>Success Criteria:</strong></p>
+<ul><li>All 22 new rules pass test suite with 0 false positives on known-good code</li><li>Detection accuracy validated against <code>examples/vulnerable/</code></li><li>Performance benchmark: &lt; 200ms for 1000 lines</li><li>SARIF output compatible with GitHub Code Scanning</li></ul>
+<h3>M2: Auto-Fix and Plugin System (140 hours, €7,000)</h3>
+<p><strong>Rule Enhancement:</strong></p>
+<ul><li>Add <code>fixAction</code> to 30 rules (current + new)</li><li>Implement safe automated fixes for common issues</li><li>Interactive fix preview in CLI</li></ul>
+<p><strong>Rules with High Auto-Fix Potential:</strong></p>
+<table><thead><tr><th>Rule</th><th>Fix Type</th><th>Complexity</th></tr></thead><tbody><tr><td><code>php-compat-each</code></td><td>Replace with foreach</td><td>Low</td></tr><tr><td><code>php-compat-mysql-functions</code></td><td>Replace with mysqli_</td><td>Low</td></tr><tr><td><code>php-compat-dollar-brace</code></td><td>Replace with {$var}</td><td>Low</td></tr><tr><td><code>php-compat-utf8-encode</code></td><td>Replace with mb_convert_encoding</td><td>Medium</td></tr><tr><td><code>whmcs-metadata</code></td><td>Insert MetaData() function template</td><td>Medium</td></tr><tr><td><code>perl-strict-warnings</code></td><td>Insert use strict/warnings</td><td>Low</td></tr><tr><td><code>security-hardcoded-credentials</code></td><td>Replace with env var placeholder</td><td>Medium</td></tr></tbody></table>
+<h3>M3: Developer Experience (100 hours, €5,000)</h3>
+<p><strong>IDE Integration:</strong></p>
+<ul><li>VS Code extension with inline rule warnings</li><li>PhpStorm plugin via Language Server Protocol</li><li>Real-time analysis as-you-type</li></ul>
+<h3>M4: Documentation (80 hours, €4,000)</h3>
+<p><strong>Rule Documentation Website:</strong></p>
+<ul><li>Auto-generated rule catalog from code</li><li>Each rule page with: description, examples, fix, SARIF output</li><li>Searchable by platform, category, severity</li><li>Migration guides (PHP 7 → 8, API1 → UAPI, etc.)</li></ul>
+<hr />
+<h2>6. Testing Strategy</h2>
+<h3>6.1 Test Requirements</h3>
+<p><strong>Every rule must have:</strong></p>
+<ol><li><strong>Positive Test</strong> (detects issue when present)</li></ol>
+<pre><code>   it('should detect SQL injection with $_GET in query', () =&gt; {
+     const code = `$query = &quot;SELECT * FROM users WHERE id = &quot; . $_GET['id'];`;
+     const results = analyze(code, 'module.php');
+     expect(results).toHaveLength(1);
+     expect(results[0].ruleId).toBe('security-sql-injection');
+   });</code></pre>
+<ol><li><strong>Negative Test</strong> (no false positive on safe code)</li></ol>
+<pre><code>   it('should not flag parameterized query', () =&gt; {
+     const code = `$stmt = $pdo-&gt;prepare('SELECT * FROM users WHERE id = ?');`;
+     const results = analyze(code, 'module.php');
+     expect(results).toHaveLength(0);
+   });</code></pre>
+<ol><li><strong>Edge Case Tests</strong> (boundary conditions)</li></ol>
+<pre><code>   it('should not flag SQL in comments', () =&gt; {
+     const code = `// $query = &quot;SELECT * FROM users WHERE id = &quot; . $_GET['id'];`;
+     const results = analyze(code, 'module.php');
+     expect(results).toHaveLength(0);
+   });</code></pre>
+<h3>6.2 Vulnerable Example Files</h3>
+<p>Each rule should have a corresponding vulnerable example in <code>examples/vulnerable/</code>:</p>
+<pre><code>examples/vulnerable/
+├── whmcs-vulnerable/
+│   ├── sql_injection.php          # security-sql-injection
+│   ├── php82_deprecations.php     # php-compat-* rules
+│   ├── weak_crypto.php            # security-php-weak-crypto
+│   └── ...
+├── cpanel-vulnerable/
+│   ├── api1_usage.pl              # perl-cpanel-api1-functions
+│   ├── command_injection.pl       # security-perl-cmd-injection
+│   └── ...
+└── openpanel-vulnerable/
+    ├── privileged-container.yml   # openpanel-security-capabilities
+    ├── secrets-in-env.yml         # openpanel-security-secrets-in-env
+    └── ...</code></pre>
+<h3>6.3 Coverage Requirements</h3>
+<p><strong>Target: 100% line coverage for rule files</strong></p>
+<pre><code>npm run test:ci
+# Must show 100% coverage for:
+# - packages/core/src/rules/**/*.ts</code></pre>
+<p><strong>Current coverage (28 rules):</strong></p>
+<pre><code>File               | % Stmts | % Branch | % Funcs | % Lines
+-------------------|---------|----------|---------|--------
+rules/php/         |   100   |   100    |   100   |   100
+rules/perl/        |   100   |   100    |   100   |   100
+rules/openpanel/   |   100   |   100    |   100   |   100
+rules/common/      |   100   |   100    |   100   |   100</code></pre>
+<h3>6.4 Integration Testing</h3>
+<p><strong>Test against real-world modules:</strong></p>
+<ol><li><strong>WHMCS Sample Modules</strong> (from marketplace)</li><li>Test against 5-10 popular WHMCS modules</li><li>Verify no false positives on production code</li></ol>
+<ol><li><strong>cPanel Plugins</strong> (from GitHub)</li><li>Test against cPanel plugin repositories</li><li>Validate API1 detection accuracy</li></ol>
+<ol><li><strong>OpenPanel Extensions</strong> (from DigitalOcean marketplace)</li><li>Test against sample OpenPanel Docker compose files</li><li>Verify container security rule accuracy</li></ol>
+<hr />
+<h2>7. Performance Considerations</h2>
+<h3>7.1 Performance Benchmarks</h3>
+<p><strong>Current Baseline (28 rules):</strong></p>
+<ul><li>1000-line PHP file: ~50ms</li><li>1000-line Perl file: ~45ms</li><li>Docker Compose YAML: ~10ms</li></ul>
+<p><strong>Target with 50+ rules:</strong></p>
+<ul><li>Maximum 2x slowdown: &lt; 100ms for 1000 lines</li><li>Parallelization goal: &lt; 150ms for 5000-line project</li></ul>
+<h3>7.2 Profiling Strategy</h3>
+<pre><code># Profile rule execution time
+npm run benchmark -- --rules=all --file=examples/large-module.php
+
+# Output:
+# security-sql-injection:     2.3ms
+# php-compat-each:            0.8ms
+# whmcs-metadata:             1.2ms
+# ... (total: 87ms for 50 rules)</code></pre>
+<h3>7.3 Optimization Opportunities</h3>
+<ol><li><strong>Rule Ordering</strong>: Run fast rules first (early detection)</li><li><strong>Lazy Evaluation</strong>: Skip expensive rules if fast rules already found issues</li><li><strong>Caching</strong>: Cache compiled regex patterns</li><li><strong>Worker Threads</strong>: Parallel analysis for large projects (future)</li></ol>
+<hr />
+<h2>8. Community Contribution Model</h2>
+<h3>8.1 Rule Submission Process</h3>
+<p><strong>Template: <code>.github/RULE_TEMPLATE.md</code></strong></p>
+<pre><code>## Rule Proposal
+
+### Rule Information
+- **Rule ID**: `category-platform-description`
+- **Category**: security | compatibility | best-practice
+- **Platform**: whmcs | cpanel | openpanel | all
+- **Severity**: error | warning | info
+
+### Description
+[Clear description of what this rule detects]
+
+### Rationale
+[Why is this rule important? Link to CVE, documentation, or best practices]
+
+### Detection Pattern
+[Regex or pattern description]
+
+### Example Vulnerable Code</code></pre>
+<p>// Code that should trigger the rule</p>
+<pre><code>
+### Example Fixed Code</code></pre>
+<p>// Code that should NOT trigger the rule</p>
+<pre><code>
+### False Positive Considerations
+[What are potential false positives and how to avoid them?]
+
+### Related Rules
+[Links to similar existing rules]
+
+### References
+- [CVE-XXXX-XXXX](https://cve.mitre.org)
+- [OWASP Top 10](https://owasp.org)</code></pre>
+<h3>8.2 Validation Criteria</h3>
+<p><strong>Rules will be accepted if:</strong></p>
+<ol><li>✅ Addresses real security vulnerability or compatibility issue</li><li>✅ Has &lt; 5% false positive rate on test corpus</li><li>✅ Includes 2+ test cases (positive + negative)</li><li>✅ Provides concrete fix suggestion</li><li>✅ Does not duplicate existing rule</li><li>✅ Performance impact &lt; 5ms per 1000 lines</li></ol>
+<h3>8.3 Plugin System (M2 Milestone)</h3>
+<p><strong>Allow community-contributed rules via npm packages:</strong></p>
+<pre><code>// Custom rule package: @hostinglint-rules/my-company
+export const myCompanyRules: Rule[] = [
+  {
+    id: 'my-company-license-check',
+    description: 'Enforce company license header',
+    // ... rule implementation
+  },
+];
+
+// Load in config:
+// .hostinglintrc.js
+module.exports = {
+  plugins: ['@hostinglint-rules/my-company'],
+};</code></pre>
+<hr />
+<h2>9. Appendices</h2>
+<h3>9.1 Complete Rule Matrix (28 Current + 22 Proposed = 50 Total)</h3>
+<table><thead><tr><th>#</th><th>Rule ID</th><th>Category</th><th>Platform</th><th>Severity</th><th>Status</th></tr></thead><tbody><tr><td>1</td><td>php-compat-each</td><td>compatibility</td><td>whmcs</td><td>error</td><td>✅ Current</td></tr><tr><td>2</td><td>php-compat-create-function</td><td>compatibility</td><td>whmcs</td><td>error</td><td>✅ Current</td></tr><tr><td>3</td><td>php-compat-mysql-functions</td><td>compatibility</td><td>whmcs</td><td>error</td><td>✅ Current</td></tr><tr><td>4</td><td>php-compat-curly-braces</td><td>compatibility</td><td>whmcs</td><td>error</td><td>✅ Current</td></tr><tr><td>5</td><td>security-sql-injection</td><td>security</td><td>whmcs</td><td>error</td><td>✅ Current</td></tr><tr><td>6</td><td>security-xss</td><td>security</td><td>whmcs</td><td>error</td><td>✅ Current</td></tr><tr><td>7</td><td>security-path-traversal</td><td>security</td><td>whmcs</td><td>error</td><td>✅ Current</td></tr><tr><td>8</td><td>whmcs-metadata</td><td>compatibility</td><td>whmcs</td><td>warning</td><td>✅ Current</td></tr><tr><td>9</td><td>whmcs-deprecated</td><td>compatibility</td><td>whmcs</td><td>warning</td><td>✅ Current</td></tr><tr><td>10</td><td>whmcs-hook-error-handling</td><td>best-practice</td><td>whmcs</td><td>warning</td><td>✅ Current</td></tr><tr><td>11</td><td>whmcs-config-function</td><td>compatibility</td><td>whmcs</td><td>warning</td><td>✅ Current</td></tr><tr><td>12</td><td>whmcs-license-check</td><td>best-practice</td><td>whmcs</td><td>info</td><td>✅ Current</td></tr><tr><td>13</td><td>whmcs-return-format</td><td>best-practice</td><td>whmcs</td><td>warning</td><td>✅ Current</td></tr><tr><td>14</td><td>perl-cpanel-api-version</td><td>compatibility</td><td>cpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>15</td><td>perl-deprecated-modules</td><td>compatibility</td><td>cpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>16</td><td>perl-security-taint</td><td>security</td><td>cpanel</td><td>error</td><td>✅ Current</td></tr><tr><td>17</td><td>perl-file-permissions</td><td>security</td><td>cpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>18</td><td>perl-input-validation</td><td>security</td><td>cpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>19</td><td>perl-strict-warnings</td><td>best-practice</td><td>cpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>20</td><td>perl-error-handling</td><td>best-practice</td><td>cpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>21</td><td>openpanel-api-versioning</td><td>compatibility</td><td>openpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>22</td><td>openpanel-security-capabilities</td><td>security</td><td>openpanel</td><td>error</td><td>✅ Current</td></tr><tr><td>23</td><td>openpanel-cli-validation</td><td>security</td><td>openpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>24</td><td>openpanel-dockerfile</td><td>best-practice</td><td>openpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>25</td><td>openpanel-resource-limits</td><td>best-practice</td><td>openpanel</td><td>warning</td><td>✅ Current</td></tr><tr><td>26</td><td>security-hardcoded-credentials</td><td>security</td><td>all</td><td>error</td><td>✅ Current</td></tr><tr><td>27</td><td>security-eval-usage</td><td>security</td><td>all</td><td>warning</td><td>✅ Current</td></tr><tr><td>28</td><td>best-practice-todo-fixme</td><td>best-practice</td><td>all</td><td>info</td><td>✅ Current</td></tr><tr><td><strong>29</strong></td><td><strong>security-php-deserialization</strong></td><td><strong>security</strong></td><td><strong>whmcs</strong></td><td><strong>error</strong></td><td>🔵 <strong>P1</strong></td></tr><tr><td><strong>30</strong></td><td><strong>security-php-ssrf</strong></td><td><strong>security</strong></td><td><strong>whmcs</strong></td><td><strong>error</strong></td><td>🔵 <strong>P1</strong></td></tr><tr><td><strong>31</strong></td><td><strong>security-php-weak-crypto</strong></td><td><strong>security</strong></td><td><strong>whmcs</strong></td><td><strong>error</strong></td><td>🔵 <strong>P1</strong></td></tr><tr><td><strong>32</strong></td><td><strong>security-perl-sql-injection</strong></td><td><strong>security</strong></td><td><strong>cpanel</strong></td><td><strong>error</strong></td><td>🔵 <strong>P1</strong></td></tr><tr><td><strong>33</strong></td><td><strong>security-perl-cmd-injection</strong></td><td><strong>security</strong></td><td><strong>cpanel</strong></td><td><strong>error</strong></td><td>🔵 <strong>P1</strong></td></tr><tr><td><strong>34</strong></td><td><strong>openpanel-security-bind-mounts</strong></td><td><strong>security</strong></td><td><strong>openpanel</strong></td><td><strong>error</strong></td><td>🔵 <strong>P1</strong></td></tr><tr><td><strong>35</strong></td><td><strong>openpanel-security-secrets-in-env</strong></td><td><strong>security</strong></td><td><strong>openpanel</strong></td><td><strong>error</strong></td><td>🔵 <strong>P1</strong></td></tr><tr><td><strong>36</strong></td><td><strong>security-insecure-random</strong></td><td><strong>security</strong></td><td><strong>all</strong></td><td><strong>error</strong></td><td>🔵 <strong>P1</strong></td></tr><tr><td><strong>37</strong></td><td><strong>php-compat-dynamic-properties</strong></td><td><strong>compatibility</strong></td><td><strong>whmcs</strong></td><td><strong>warning</strong></td><td>🟢 <strong>P2</strong></td></tr><tr><td><strong>38</strong></td><td><strong>php-compat-utf8-encode</strong></td><td><strong>compatibility</strong></td><td><strong>whmcs</strong></td><td><strong>error</strong></td><td>🟢 <strong>P2</strong></td></tr><tr><td><strong>39</strong></td><td><strong>php-compat-dollar-brace</strong></td><td><strong>compatibility</strong></td><td><strong>whmcs</strong></td><td><strong>warning</strong></td><td>🟢 <strong>P2</strong></td></tr><tr><td><strong>40</strong></td><td><strong>php-compat-null-to-internal</strong></td><td><strong>compatibility</strong></td><td><strong>whmcs</strong></td><td><strong>warning</strong></td><td>🟢 <strong>P2</strong></td></tr><tr><td><strong>41</strong></td><td><strong>php-compat-implicit-float-conversion</strong></td><td><strong>compatibility</strong></td><td><strong>whmcs</strong></td><td><strong>info</strong></td><td>🟢 <strong>P2</strong></td></tr><tr><td><strong>42</strong></td><td><strong>php-compat-serializable-interface</strong></td><td><strong>compatibility</strong></td><td><strong>whmcs</strong></td><td><strong>warning</strong></td><td>🟢 <strong>P2</strong></td></tr><tr><td><strong>43</strong></td><td><strong>whmcs-payment-gateway-deprecated</strong></td><td><strong>compatibility</strong></td><td><strong>whmcs</strong></td><td><strong>warning</strong></td><td>🟡 <strong>P3</strong></td></tr><tr><td><strong>44</strong></td><td><strong>whmcs-capsule-orm-migration</strong></td><td><strong>best-practice</strong></td><td><strong>whmcs</strong></td><td><strong>info</strong></td><td>🟡 <strong>P3</strong></td></tr><tr><td><strong>45</strong></td><td><strong>whmcs-hook-facade</strong></td><td><strong>best-practice</strong></td><td><strong>whmcs</strong></td><td><strong>info</strong></td><td>🟡 <strong>P3</strong></td></tr><tr><td><strong>46</strong></td><td><strong>whmcs-strict-types</strong></td><td><strong>best-practice</strong></td><td><strong>whmcs</strong></td><td><strong>info</strong></td><td>🟡 <strong>P3</strong></td></tr><tr><td><strong>47</strong></td><td><strong>perl-cpanel-api1-functions</strong></td><td><strong>compatibility</strong></td><td><strong>cpanel</strong></td><td><strong>error</strong></td><td>🟠 <strong>P4</strong></td></tr><tr><td><strong>48</strong></td><td><strong>perl-cpanel-api2-to-uapi</strong></td><td><strong>compatibility</strong></td><td><strong>cpanel</strong></td><td><strong>info</strong></td><td>🟠 <strong>P4</strong></td></tr><tr><td><strong>49</strong></td><td><strong>perl-whm-api1-usage</strong></td><td><strong>compatibility</strong></td><td><strong>cpanel</strong></td><td><strong>warning</strong></td><td>🟠 <strong>P4</strong></td></tr><tr><td><strong>50</strong></td><td><strong>openpanel-security-host-network</strong></td><td><strong>security</strong></td><td><strong>openpanel</strong></td><td><strong>error</strong></td><td>🔴 <strong>P5</strong></td></tr></tbody></table>
+<p>*(Priority 5 &amp; 6 rules truncated for brevity - full list available in GitHub issue tracker)*</p>
+<h3>9.2 CVE Reference Mapping</h3>
+<table><thead><tr><th>CVE</th><th>Description</th><th>Related Rule(s)</th></tr></thead><tbody><tr><td>CVE-2024-4577</td><td>PHP CGI RCE vulnerability</td><td><code>php-compat-*</code> (upgrade context)</td></tr><tr><td>CVE-2025-9074</td><td>Docker Desktop container escape</td><td><code>openpanel-security-bind-mounts</code></td></tr><tr><td>CVE-2025-3911</td><td>Docker Desktop log file leak</td><td><code>openpanel-security-secrets-in-env</code></td></tr><tr><td>CVE-2025-23266</td><td>NVIDIA Container Toolkit escape</td><td><code>openpanel-security-capabilities</code></td></tr><tr><td>CVE-2025-31133</td><td>runC vulnerability</td><td><code>openpanel-security-capabilities</code></td></tr><tr><td>CWE-89</td><td>SQL Injection</td><td><code>security-sql-injection</code>, <code>security-perl-sql-injection</code></td></tr><tr><td>CWE-79</td><td>Cross-Site Scripting</td><td><code>security-xss</code></td></tr><tr><td>CWE-78</td><td>OS Command Injection</td><td><code>perl-security-taint</code>, <code>security-perl-cmd-injection</code></td></tr><tr><td>CWE-22</td><td>Path Traversal</td><td><code>security-path-traversal</code></td></tr><tr><td>CWE-798</td><td>Hardcoded Credentials</td><td><code>security-hardcoded-credentials</code></td></tr><tr><td>CWE-327</td><td>Weak Crypto</td><td><code>security-php-weak-crypto</code></td></tr><tr><td>CWE-502</td><td>Deserialization</td><td><code>security-php-deserialization</code></td></tr><tr><td>CWE-918</td><td>SSRF</td><td><code>security-php-ssrf</code></td></tr></tbody></table>
+<h3>9.3 Version Compatibility Matrix</h3>
+<table><thead><tr><th>Platform</th><th>Supported Versions</th><th>Min Version</th><th>Max Version</th><th>Notes</th></tr></thead><tbody><tr><td><strong>PHP</strong></td><td>7.4, 8.0, 8.1, 8.2, 8.3</td><td>7.4</td><td>8.3</td><td>PHP 7.4 EOL: Nov 2022</td></tr><tr><td><strong>WHMCS</strong></td><td>8.11, 8.12, 8.13</td><td>8.11</td><td>8.13+</td><td>8.11 EOL: Sep 2025</td></tr><tr><td><strong>cPanel</strong></td><td>v132, v133, v134</td><td>132</td><td>134+</td><td>Rolling release model</td></tr><tr><td><strong>OpenPanel</strong></td><td>1.0+</td><td>1.0</td><td>latest</td><td>Docker-based, version in manifest</td></tr><tr><td><strong>Perl</strong></td><td>5.36+</td><td>5.36</td><td>5.40+</td><td>cPanel bundles Perl</td></tr></tbody></table>
+<h3>9.4 Tool Comparison Matrix</h3>
+<table><thead><tr><th>Feature</th><th>HostingLint</th><th>PHPStan</th><th>Perl::Critic</th><th>Hadolint</th></tr></thead><tbody><tr><td><strong>Hosting-Specific Rules</strong></td><td>✅ Yes</td><td>❌ No</td><td>❌ No</td><td>❌ No</td></tr><tr><td><strong>WHMCS API Detection</strong></td><td>✅ Yes</td><td>❌ No</td><td>-</td><td>-</td></tr><tr><td><strong>cPanel API Detection</strong></td><td>✅ Yes</td><td>-</td><td>❌ No</td><td>-</td></tr><tr><td><strong>Docker Security</strong></td><td>✅ Yes</td><td>-</td><td>-</td><td>⚠️ Generic</td></tr><tr><td><strong>Multi-Language</strong></td><td>✅ PHP+Perl+Docker</td><td>❌ PHP only</td><td>❌ Perl only</td><td>❌ Docker only</td></tr><tr><td><strong>No Runtime Required</strong></td><td>✅ Yes</td><td>❌ Needs PHP</td><td>❌ Needs Perl</td><td>✅ Yes</td></tr><tr><td><strong>SARIF Output</strong></td><td>✅ Yes</td><td>✅ Yes</td><td>❌ No</td><td>✅ Yes</td></tr><tr><td><strong>Auto-Fix</strong></td><td>🔜 M2</td><td>❌ No</td><td>❌ No</td><td>❌ No</td></tr><tr><td><strong>CI/CD Integration</strong></td><td>✅ GitHub Actions</td><td>✅ Yes</td><td>✅ Yes</td><td>✅ Yes</td></tr></tbody></table>
+<p><strong>Key Differentiator:</strong> HostingLint is the <strong>only tool</strong> that understands hosting control panel APIs and security patterns across PHP, Perl, and containerized environments.</p>
+<hr />
+<h2>10. Conclusion and Next Steps</h2>
+<h3>10.1 Summary</h3>
+<p>This roadmap outlines a path to expand HostingLint from <strong>28 to 50+ rules</strong> across three hosting platforms:</p>
+<ul><li><strong>8 Priority 1 rules</strong>: High-impact security vulnerabilities (2024-2025 CVEs)</li><li><strong>6 Priority 2 rules</strong>: PHP 8.2/8.3 compatibility issues</li><li><strong>4 Priority 3 rules</strong>: WHMCS 8.11-8.13 specific patterns</li><li><strong>3 Priority 4 rules</strong>: cPanel UAPI migration detection</li><li><strong>6 Priority 5 rules</strong>: OpenPanel container security</li><li><strong>5 Priority 6 rules</strong>: Advanced static analysis patterns</li></ul>
+<h3>10.2 Implementation Timeline (M1 Milestone)</h3>
+<p><strong>Week 1-2 (40 hours): Priority 1 Security Rules</strong></p>
+<ul><li>Implement 8 high-impact security rules</li><li>Create vulnerable examples for testing</li><li>Validate against known CVEs</li></ul>
+<p><strong>Week 3-4 (30 hours): PHP 8.2/8.3 Compatibility</strong></p>
+<ul><li>Implement 6 PHP deprecation rules</li><li>Test against real WHMCS modules</li><li>Document migration patterns</li></ul>
+<p><strong>Week 5-6 (30 hours): Platform-Specific Rules</strong></p>
+<ul><li>WHMCS 8.11-8.13 rules (4)</li><li>cPanel UAPI migration rules (3)</li><li>OpenPanel container rules (3)</li></ul>
+<p><strong>Week 7-8 (20 hours): Testing &amp; Documentation</strong></p>
+<ul><li>Achieve 100% test coverage</li><li>Update rule catalog</li><li>Performance benchmarking</li></ul>
+<h3>10.3 Success Metrics</h3>
+<p><strong>Technical Metrics:</strong></p>
+<ul><li>✅ 50+ total rules implemented</li><li>✅ 100% test coverage on rule files</li><li>✅ &lt; 200ms analysis time for 1000 lines</li><li>✅ &lt; 5% false positive rate</li><li>✅ SARIF compatibility for GitHub Code Scanning</li></ul>
+<p><strong>Grant Application Metrics:</strong></p>
+<ul><li>✅ Comprehensive technical documentation</li><li>✅ Evidence of community value (vulnerable examples)</li><li>✅ Clear roadmap through v1.0 release</li><li>✅ Differentiation from existing tools</li></ul>
+<h3>10.4 Long-Term Vision</h3>
+<p><strong>Beyond M1 (50+ rules):</strong></p>
+<ul><li><strong>M2 (Auto-Fix)</strong>: Add automated fixes to 30 rules</li><li><strong>M3 (IDE Integration)</strong>: Real-time analysis in VS Code, PhpStorm</li><li><strong>M4 (Documentation)</strong>: Auto-generated rule catalog website</li><li><strong>v1.0 Release</strong>: Stable API, plugin system, community rule marketplace</li></ul>
+<p><strong>Community Growth:</strong></p>
+<ul><li>Open rule submission process</li><li>Monthly releases with community-contributed rules</li><li>Integration with hosting industry tools (cPanel DevKit, WHMCS Marketplace)</li><li>Presentation at hosting industry conferences</li></ul>
+<hr />
+<p><strong>Document Prepared By:</strong> HostingLint Development Team</p>
+<p><strong>For:</strong> NLnet NGI Zero Commons Fund Application</p>
+<p><strong>Last Updated:</strong> February 8, 2026</p>
+<p><strong>Next Review:</strong> March 1, 2026 (pre-submission)</p>
+<hr />
+<p>*This roadmap is a living document and will be updated as the project evolves. Community feedback is welcome via GitHub Issues.*</p>
+</body>
+</html>
