@@ -33,3 +33,15 @@ Thumbs.db
 # npm
 *.tgz
 .npmrc
+
+# Planning / grant / roadmap (kept locally, not in repo)
+docs/NLNET-*.md
+docs/MILESTONE-ROADMAP.md
+docs/ROADMAP.md
+docs/RULES-ROADMAP.md
+docs/NPM-PUBLISH.md
+docs/nlnet-print/
+docs/nlnet-pdf/
+scripts/build-nlnet-print-html.mjs
+scripts/nlnet-html-to-pdf.mjs
+.cursor/plans/

@@ -59,7 +59,7 @@ This is the most common contribution. Here's how:
 
 ### 1. Pick a rule
 
-Check [RULES.md](RULES.md) and [RULES-ROADMAP.md](RULES-ROADMAP.md) for ideas and to avoid duplicates.
+Check [RULES.md](RULES.md) and open GitHub Issues for planned work to avoid duplicates.
 
 ### 2. Create the rule
 

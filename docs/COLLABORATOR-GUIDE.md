@@ -48,7 +48,7 @@ If you see all green (lint, typecheck, 144 tests pass, build), you're ready.
 
 | Task | Difficulty | Time | Where |
 |------|-----------|------|-------|
-| Implement a Priority 2 rule from the roadmap | Medium | 2-3 hours | See `docs/RULES-ROADMAP.md` |
+| Implement a Priority 2 rule (new compat/security pattern) | Medium | 2-3 hours | See `docs/RULES.md` and GitHub Issues |
 | Add auto-fix to an existing rule | Medium | 2-3 hours | `packages/core/src/rules/` |
 | Improve false positive filtering | Medium | 2-3 hours | Any rule file |
 | Add integration tests with real modules | Medium | 3-4 hours | `packages/core/tests/` |
@@ -75,7 +75,7 @@ These are the next rules we want to implement. Pick one and go:
 - `openpanel-security-host-network` -- host network mode
 - `openpanel-security-latest-tag` -- using :latest tag
 
-Full specs with regex patterns are in `docs/RULES-ROADMAP.md`.
+Propose new rules via GitHub Issues; documented rules are listed in `docs/RULES.md`.
 
 ## How to Add a Rule (Simple Version)
 
@@ -100,7 +100,6 @@ See `docs/CONTRIBUTING.md` for the full guide with code examples.
 | `packages/core/src/rules/perl/security.ts` | Perl security rules |
 | `packages/core/src/rules/openpanel/security.ts` | OpenPanel Docker rules |
 | `packages/core/tests/analyzers/php.test.ts` | PHP tests (follow this pattern) |
-| `docs/RULES-ROADMAP.md` | Detailed specs for 22 planned rules |
 | `docs/RULES.md` | Documentation of all current rules |
 
 ## Communication
@@ -151,7 +150,7 @@ It's beginner-friendly -- adding a rule takes 1-2 hours and there's a step-by-st
 1. I'll add you as a collaborator on GitHub
 2. Clone the repo: `git clone https://github.com/Stdubic/hostinglint.git`
 3. Run `npm install && npm run validate`
-4. Pick a rule from the roadmap: `docs/RULES-ROADMAP.md`
+4. Pick a rule idea from `docs/RULES.md` or open an issue
 5. Read the contributor guide: `docs/CONTRIBUTING.md`
 
 Let me know if you're interested and I'll send the GitHub invite!
