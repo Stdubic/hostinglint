@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HostingLint — Package documentation</title>
+  <meta name="description" content="HostingLint CLI and @hostinglint/core: install, usage, and API overview for static analysis of WHMCS, cPanel, and OpenPanel modules." />
+  <link rel="canonical" href="https://stdub.org/hostinglint/" />
+  <style>
+    :root {
+      --bg: #fafafa;
+      --text: #1a1a1a;
+      --muted: #555;
+      --border: #e0e0e0;
+      --accent: #0d47a1;
+      --code-bg: #f0f0f0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121212;
+        --text: #e8e8e8;
+        --muted: #a0a0a0;
+        --border: #333;
+        --accent: #90caf9;
+        --code-bg: #1e1e1e;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.55;
+      color: var(--text);
+      background: var(--bg);
+      margin: 0;
+      padding: 0 1rem 3rem;
+    }
+    .wrap { max-width: 42rem; margin: 0 auto; }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 0;
+      margin-bottom: 2rem;
+    }
+    nav { font-size: 0.9rem; }
+    nav a { color: var(--accent); margin-right: 1rem; }
+    nav a:visited { color: var(--accent); }
+    h1 { font-size: 1.85rem; font-weight: 700; margin: 0 0 0.35rem; letter-spacing: -0.02em; }
+    .lede { color: var(--muted); font-size: 1.05rem; margin: 0 0 1.5rem; }
+    h2 {
+      font-size: 1.2rem;
+      margin: 2rem 0 0.75rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+    h2:first-of-type { border-top: none; padding-top: 0; }
+    h3 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
+    p, ul { margin: 0.5rem 0; }
+    ul { padding-left: 1.25rem; }
+    code, pre {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.88em;
+    }
+    code {
+      background: var(--code-bg);
+      padding: 0.12em 0.35em;
+      border-radius: 4px;
+    }
+    pre {
+      background: var(--code-bg);
+      padding: 0.85rem 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+    }
+    pre code { background: none; padding: 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin: 0.75rem 0;
+    }
+    th, td {
+      text-align: left;
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.55rem;
+      vertical-align: top;
+    }
+    th { font-weight: 600; }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .pkg { margin: 0.15rem 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <nav aria-label="Primary">
+        <a href="https://stdub.org/">stdub.org</a>
+        <a href="https://github.com/Stdubic/hostinglint">GitHub</a>
+        <a href="https://www.npmjs.com/package/hostinglint">npm: hostinglint</a>
+        <a href="https://www.npmjs.com/package/@hostinglint/core">npm: @hostinglint/core</a>
+      </nav>
+    </header>
+
+    <article>
+      <h1>HostingLint</h1>
+      <p class="lede">
+        Static analysis for hosting control panel modules: <strong>WHMCS</strong> (PHP), <strong>cPanel</strong> (Perl), and <strong>OpenPanel</strong> (Docker).
+        No PHP or Perl runtime required—safe for CI and local checks.
+      </p>
+
+      <h2>Packages</h2>
+      <p class="pkg"><code>hostinglint</code> — Command-line interface (depends on core).</p>
+      <p class="pkg"><code>@hostinglint/core</code> — Analysis engine and public TypeScript API.</p>
+      <p>Both are MIT-licensed and require <strong>Node.js 20+</strong>.</p>
+
+      <h2>Install</h2>
+      <h3>CLI (no install)</h3>
+      <pre><code>npx hostinglint check ./path/to/module/</code></pre>
+      <h3>CLI (global)</h3>
+      <pre><code>npm install -g hostinglint
+hostinglint check ./path/to/module/</code></pre>
+      <h3>Library</h3>
+      <pre><code>npm install @hostinglint/core</code></pre>
+
+      <h2>CLI: <code>hostinglint check</code></h2>
+      <p>Analyze a file or directory. Supported extensions are detected automatically (e.g. <code>.php</code>, <code>.pl</code>, <code>Dockerfile</code>, OpenPanel manifests).</p>
+      <table>
+        <thead>
+          <tr><th>Option</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>&lt;path&gt;</code></td><td>File or directory to analyze (required).</td></tr>
+          <tr><td><code>-p, --platform</code></td><td><code>whmcs</code>, <code>cpanel</code>, or <code>openpanel</code>. Omit for auto-detection.</td></tr>
+          <tr><td><code>--php-version</code></td><td>Target PHP version for compatibility rules (default <code>8.3</code>).</td></tr>
+          <tr><td><code>-f, --format</code></td><td><code>text</code> (default), <code>json</code>, or <code>sarif</code> (GitHub Code Scanning).</td></tr>
+          <tr><td><code>-c, --config</code></td><td>Path to <code>.hostinglintrc.json</code> (otherwise searched upward from target).</td></tr>
+          <tr><td><code>-w, --watch</code></td><td>Re-run when files change (where supported).</td></tr>
+          <tr><td><code>--fix</code></td><td>Apply automatic fixes where the engine supports them, then re-check.</td></tr>
+          <tr><td><code>--no-security</code></td><td>Disable security rules.</td></tr>
+          <tr><td><code>--no-best-practices</code></td><td>Disable best-practice rules.</td></tr>
+        </tbody>
+      </table>
+      <p>Exit code is non-zero when any <strong>error</strong>-severity finding remains (single pass mode).</p>
+
+      <h2>Library API (<code>@hostinglint/core</code>)</h2>
+      <p>Typical entry points:</p>
+      <ul>
+        <li><code>analyzeAuto(code, filePath, options)</code> — pick analyzer by file path.</li>
+        <li><code>analyzePhp</code>, <code>analyzePerl</code>, <code>analyzeOpenPanel</code> — platform-specific analysis.</li>
+        <li><code>findConfig</code>, <code>loadConfigFromFile</code>, <code>mergeConfig</code> — configuration.</li>
+        <li><code>applyFixes</code>, <code>getFixableSummary</code> — fix pipeline.</li>
+        <li>Rule registry: <code>allRules</code>, <code>getRuleById</code>, presets <code>recommended</code>, <code>strict</code>, etc.</li>
+      </ul>
+      <p>Types (e.g. <code>LintResult</code>, <code>Platform</code>, <code>PhpVersion</code>) ship with the package. Use Node’s <code>Node16</code>/<code>NodeNext</code> resolution and <code>.js</code> extensions in relative imports when mirroring the library’s style.</p>
+      <pre><code>import { analyzePhp, analyzeAuto, findConfig } from "@hostinglint/core";
+
+const results = analyzePhp(source, "module.php", {
+  phpVersion: "8.3",
+  whmcsVersion: "8.13",
+  security: true,
+});</code></pre>
+
+      <h2>Configuration</h2>
+      <p>Optional project file <code>.hostinglintrc.json</code>:</p>
+      <ul>
+        <li><code>rules</code> — per-rule severity or <code>off</code>.</li>
+        <li><code>phpVersion</code>, WHMCS/cPanel version fields as supported by core.</li>
+        <li><code>ignore</code> — glob patterns for paths to skip.</li>
+      </ul>
+      <p>Inline suppressions in source comments (e.g. <code>hostinglint-disable-next-line rule-id</code>) are supported for PHP/Perl-style comments—see the GitHub README for exact syntax.</p>
+
+      <h2>Rules &amp; reference</h2>
+      <p>Rule IDs, severities, and tables for all platforms live in the repository:</p>
+      <p><a href="https://github.com/Stdubic/hostinglint/blob/main/docs/RULES.md">docs/RULES.md on GitHub</a></p>
+
+      <h2>Contributing &amp; security</h2>
+      <ul>
+        <li><a href="https://github.com/Stdubic/hostinglint/blob/main/docs/CONTRIBUTING.md">Contributing</a></li>
+        <li><a href="https://github.com/Stdubic/hostinglint/blob/main/SECURITY.md">Security policy</a></li>
+      </ul>
+
+      <footer>
+        <p>
+          This page documents the public npm packages for <strong>HostingLint</strong>.
+          Source: <a href="https://github.com/Stdubic/hostinglint">github.com/Stdubic/hostinglint</a>.
+        </p>
+      </footer>
+    </article>
+  </div>
+</body>
+</html>

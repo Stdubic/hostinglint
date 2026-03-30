@@ -36,7 +36,7 @@
     "url": "git+https://github.com/Stdubic/hostinglint.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/Stdubic/hostinglint#readme",
+  "homepage": "https://stdub.org/hostinglint/",
   "bugs": {
     "url": "https://github.com/Stdubic/hostinglint/issues"
   },

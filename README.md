@@ -2,6 +2,8 @@
 
 Static analysis toolkit for hosting control panel modules. Validates WHMCS (PHP), cPanel (Perl), and OpenPanel modules for syntax, compatibility, security, and best practices.
 
+**Package documentation (install, CLI, API):** [stdub.org/hostinglint](https://stdub.org/hostinglint/)
+
 ## Quick Start
 
 ```bash
