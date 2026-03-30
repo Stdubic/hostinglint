@@ -1,6 +1,6 @@
 # HostingLint Rules Reference
 
-Complete reference of all 32 rules across all platforms.
+Complete reference of all 34 rules across all platforms.
 
 ---
 
@@ -313,7 +313,7 @@ Detects critical operations (database, HTTP) without eval/die error handling.
 
 ---
 
-## OpenPanel Rules (5 rules)
+## OpenPanel Rules (7 rules)
 
 #### `openpanel-dockerfile`
 | | |
@@ -354,6 +354,52 @@ Detects Docker containers with excessive capabilities (privileged mode, SYS_ADMI
 | **Category** | security |
 
 Checks for missing input validation in OpenCLI command scripts.
+
+#### `openpanel-security-host-network`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | security |
+
+Detects Docker containers using host network mode (`network_mode: host`), which bypasses container network isolation and allows containers to access all host network interfaces.
+
+```yaml
+# Bad
+services:
+  extension:
+    network_mode: host
+
+# Good
+services:
+  extension:
+    networks:
+      - internal
+```
+
+#### `openpanel-security-secrets-in-env`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | security |
+
+Detects hardcoded secrets (passwords, API keys, tokens) in docker-compose environment variables. Variable references (`${VAR}`) are excluded.
+
+```yaml
+# Bad
+services:
+  extension:
+    environment:
+      - DATABASE_PASSWORD=secretpass123
+      - API_KEY=sk_live_abc123
+
+# Good
+services:
+  extension:
+    environment:
+      - DATABASE_PASSWORD=${DB_PASS}
+    secrets:
+      - db_password
+```
 
 ---
 

@@ -25,7 +25,7 @@ describe('Rule Registry', () => {
 
   it('should have OpenPanel rules', () => {
     expect(openpanelRules.length).toBeGreaterThan(0);
-    expect(openpanelRules.length).toBe(5);
+    expect(openpanelRules.length).toBe(7);
   });
 
   it('should have cross-platform rules', () => {
@@ -39,8 +39,8 @@ describe('Rule Registry', () => {
     );
   });
 
-  it('should have 32 total rules', () => {
-    expect(allRules.length).toBe(32);
+  it('should have 34 total rules', () => {
+    expect(allRules.length).toBe(34);
   });
 
   it('should have unique rule IDs', () => {

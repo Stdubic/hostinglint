@@ -113,8 +113,90 @@ export const openpanelCliValidation: Rule = {
   },
 };
 
+/**
+ * Rule: Detect host network mode which bypasses container network isolation
+ */
+export const openpanelSecurityHostNetwork: Rule = {
+  id: 'openpanel-security-host-network',
+  description: 'Host network mode bypasses container network isolation.',
+  severity: 'error',
+  category: 'security',
+  platform: 'openpanel',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+
+    if (!filePath.endsWith('.yml') && !filePath.endsWith('.yaml')) return results;
+
+    const lines = code.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].match(/\bnetwork_mode\s*:\s*["']?host["']?/);
+      if (match && match.index !== undefined) {
+        results.push({
+          file: filePath,
+          line: i + 1,
+          column: match.index + 1,
+          message: 'Host network mode bypasses container network isolation. Containers can access all host network interfaces and services.',
+          ruleId: 'openpanel-security-host-network',
+          severity: 'error',
+          category: 'security',
+          fix: 'Remove network_mode: host and use Docker networks for inter-container communication.',
+        });
+      }
+    }
+
+    return results;
+  },
+};
+
+/**
+ * Rule: Detect hardcoded secrets in docker-compose environment variables
+ */
+export const openpanelSecuritySecretsInEnv: Rule = {
+  id: 'openpanel-security-secrets-in-env',
+  description: 'Hardcoded secrets in environment variables. Use Docker secrets or .env files.',
+  severity: 'error',
+  category: 'security',
+  platform: 'openpanel',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+
+    if (!filePath.endsWith('.yml') && !filePath.endsWith('.yaml')) return results;
+
+    const lines = code.split('\n');
+
+    const sensitivePattern = /(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|PRIVATE_KEY|CREDENTIALS)\s*[=:]\s*(.+)/i;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const match = line.match(sensitivePattern);
+      if (match && match.index !== undefined && match[1]) {
+        const value = match[1].trim().replace(/["']/g, '');
+        // Skip variable references and empty values
+        if (!value || value.startsWith('${') || value.startsWith('$') || value === '') continue;
+        results.push({
+          file: filePath,
+          line: i + 1,
+          column: match.index + 1,
+          message: 'Hardcoded secret in environment variable. Secrets should not be stored in docker-compose files.',
+          ruleId: 'openpanel-security-secrets-in-env',
+          severity: 'error',
+          category: 'security',
+          fix: 'Use Docker secrets, .env files (excluded from version control), or external secret management.',
+        });
+      }
+    }
+
+    return results;
+  },
+};
+
 /** All OpenPanel security rules */
 export const openpanelSecurityRules: Rule[] = [
   openpanelSecurityCapabilities,
   openpanelCliValidation,
+  openpanelSecurityHostNetwork,
+  openpanelSecuritySecretsInEnv,
 ];

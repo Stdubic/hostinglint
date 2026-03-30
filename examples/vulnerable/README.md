@@ -238,10 +238,14 @@ npx hostinglint examples/vulnerable/openpanel-vulnerable/Dockerfile
 - `privileged: true` — full host access
 - Excessive capabilities (`SYS_ADMIN`, `NET_ADMIN`, `ALL`)
 - No resource limits (memory/CPU)
+- `network_mode: host` — bypasses network isolation
+- Hardcoded secrets in environment variables (`DATABASE_PASSWORD`, `API_KEY`, `ADMIN_TOKEN`)
 
 **Rules that should trigger:**
 - `openpanel-security-capabilities`
 - `openpanel-resource-limits`
+- `openpanel-security-host-network`
+- `openpanel-security-secrets-in-env`
 
 **Test command:**
 ```bash

@@ -29,5 +29,20 @@ services:
     ports:
       - "6379:6379"
 
+  # SECURITY FLAW: Host network mode — bypasses network isolation
+  extension-hostnet:
+    image: myext:latest
+    network_mode: host
+    ports:
+      - "3000:3000"
+
+  # SECURITY FLAW: Hardcoded secrets in environment variables
+  extension-secrets:
+    image: myext:latest
+    environment:
+      - DATABASE_PASSWORD=root@123
+      - API_KEY=sk_live_abc123def456
+      - ADMIN_TOKEN=secret_token_xyz
+
 volumes:
   extension-data:

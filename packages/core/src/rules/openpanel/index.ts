@@ -8,7 +8,7 @@ import { openpanelCompatibilityRules } from './compatibility.js';
 
 // Re-export individual rules
 export { openpanelDockerfile, openpanelResourceLimits } from './docker.js';
-export { openpanelSecurityCapabilities, openpanelCliValidation } from './security.js';
+export { openpanelSecurityCapabilities, openpanelCliValidation, openpanelSecurityHostNetwork, openpanelSecuritySecretsInEnv } from './security.js';
 export { openpanelApiVersioning } from './compatibility.js';
 
 // Re-export group arrays

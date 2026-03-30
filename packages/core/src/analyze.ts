@@ -44,6 +44,8 @@ export function detectPlatform(filePath: string): Platform | null {
   if (ext === '.php') return 'whmcs';
   if (ext === '.pl' || ext === '.pm' || ext === '.cgi') return 'cpanel';
   if (fileName === 'dockerfile' || fileName.startsWith('dockerfile.')) return 'openpanel';
+  if (fileName.startsWith('docker-compose') && (ext === '.yml' || ext === '.yaml')) return 'openpanel';
+  if (fileName === 'manifest.json') return 'openpanel';
 
   return null;
 }

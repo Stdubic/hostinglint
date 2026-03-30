@@ -211,6 +211,98 @@ print(f"Processing: {args.name}")
     });
   });
 
+  describe('Host network detection', () => {
+    it('should detect network_mode: host', () => {
+      const code = `version: '3'
+services:
+  myext:
+    network_mode: host
+`;
+      const results = analyzeOpenPanel(code, 'docker-compose.yml');
+      const hostResults = results.filter((r) => r.ruleId === 'openpanel-security-host-network');
+      expect(hostResults).toHaveLength(1);
+      expect(hostResults[0].severity).toBe('error');
+    });
+
+    it('should detect quoted network_mode: "host"', () => {
+      const code = `version: '3'
+services:
+  myext:
+    network_mode: "host"
+`;
+      const results = analyzeOpenPanel(code, 'docker-compose.yml');
+      const hostResults = results.filter((r) => r.ruleId === 'openpanel-security-host-network');
+      expect(hostResults).toHaveLength(1);
+    });
+
+    it('should not flag custom networks', () => {
+      const code = `version: '3'
+services:
+  myext:
+    networks:
+      - internal
+`;
+      const results = analyzeOpenPanel(code, 'docker-compose.yml');
+      const hostResults = results.filter((r) => r.ruleId === 'openpanel-security-host-network');
+      expect(hostResults).toHaveLength(0);
+    });
+  });
+
+  describe('Secrets in environment variables detection', () => {
+    it('should detect hardcoded password in environment', () => {
+      const code = `version: '3'
+services:
+  myext:
+    environment:
+      - DATABASE_PASSWORD=secretpass123
+`;
+      const results = analyzeOpenPanel(code, 'docker-compose.yml');
+      const secretResults = results.filter((r) => r.ruleId === 'openpanel-security-secrets-in-env');
+      expect(secretResults).toHaveLength(1);
+      expect(secretResults[0].severity).toBe('error');
+    });
+
+    it('should detect multiple hardcoded secrets', () => {
+      const code = `version: '3'
+services:
+  myext:
+    environment:
+      - DATABASE_PASSWORD=secretpass123
+      - API_KEY=sk_live_1234567890
+      - ADMIN_TOKEN=secret_token_xyz
+`;
+      const results = analyzeOpenPanel(code, 'docker-compose.yml');
+      const secretResults = results.filter((r) => r.ruleId === 'openpanel-security-secrets-in-env');
+      expect(secretResults).toHaveLength(3);
+    });
+
+    it('should not flag variable references', () => {
+      const code = `version: '3'
+services:
+  myext:
+    environment:
+      - DATABASE_PASSWORD=\${DB_PASS}
+      - API_KEY=$API_KEY_VAR
+`;
+      const results = analyzeOpenPanel(code, 'docker-compose.yml');
+      const secretResults = results.filter((r) => r.ruleId === 'openpanel-security-secrets-in-env');
+      expect(secretResults).toHaveLength(0);
+    });
+
+    it('should not flag non-sensitive variables', () => {
+      const code = `version: '3'
+services:
+  myext:
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+`;
+      const results = analyzeOpenPanel(code, 'docker-compose.yml');
+      const secretResults = results.filter((r) => r.ruleId === 'openpanel-security-secrets-in-env');
+      expect(secretResults).toHaveLength(0);
+    });
+  });
+
   describe('Options', () => {
     it('should respect security option when disabled', () => {
       const code = `version: '3'
