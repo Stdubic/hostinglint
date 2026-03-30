@@ -24,7 +24,8 @@ vulnerable/
 │   ├── xss_vulnerability.php
 │   ├── deprecated_functions.php
 │   ├── insecure_api_calls.php
-│   └── command_injection.php
+│   ├── command_injection.php
+│   └── insecure_random.php
 ├── cpanel-vulnerable/           # Perl-based cPanel plugins with security flaws
 │   ├── unsafe_file_operations.pl
 │   ├── sql_injection.pl
@@ -134,6 +135,25 @@ npx hostinglint examples/vulnerable/whmcs-vulnerable/insecure_api_calls.php
 **Test command:**
 ```bash
 npx hostinglint examples/vulnerable/whmcs-vulnerable/command_injection.php
+```
+
+### insecure_random.php
+
+**Vulnerabilities:**
+- `rand()` used for token generation
+- `mt_rand()` used for API key generation
+- `uniqid()` used for nonce generation
+- `md5(mt_rand())` weak token generation pattern
+- `sha1(uniqid())` weak token generation pattern
+- `md5(time())` predictable CSRF token
+- `hash('sha256', microtime())` predictable salt
+
+**Rules that should trigger:**
+- `security-insecure-random`
+
+**Test command:**
+```bash
+npx hostinglint examples/vulnerable/whmcs-vulnerable/insecure_random.php
 ```
 
 ## cPanel Vulnerable Plugins (Perl)

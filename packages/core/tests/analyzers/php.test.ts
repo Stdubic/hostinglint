@@ -727,6 +727,120 @@ exec("ping " . escapeshellarg($_GET['host']));
     });
   });
 
+  describe('Insecure random detection', () => {
+    it('should detect rand() assigned to $token', () => {
+      const code = `<?php
+$token = rand(0, 999999);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults).toHaveLength(1);
+      expect(rngResults[0].severity).toBe('error');
+      expect(rngResults[0].line).toBe(2);
+    });
+
+    it('should detect md5(mt_rand()) weak token generation', () => {
+      const code = `<?php
+$apiKey = md5(mt_rand());
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should detect sha1(uniqid()) weak token generation', () => {
+      const code = `<?php
+$secret = sha1(uniqid());
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should detect uniqid() assigned to $nonce', () => {
+      const code = `<?php
+$nonce = uniqid('', true);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults).toHaveLength(1);
+    });
+
+    it('should detect md5(time()) for $csrf', () => {
+      const code = `<?php
+$csrf = md5(time());
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should detect mt_rand() for $session_id', () => {
+      const code = `<?php
+$session_id = mt_rand(100000, 999999);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults).toHaveLength(1);
+    });
+
+    it('should detect multiple insecure random findings', () => {
+      const code = `<?php
+$token = rand(0, 999999);
+$csrf = mt_rand(100000, 999999);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults).toHaveLength(2);
+    });
+
+    it('should not flag rand() for non-security variable', () => {
+      const code = `<?php
+$delay = rand(1, 5);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults).toHaveLength(0);
+    });
+
+    it('should not flag random_bytes() (safe alternative)', () => {
+      const code = `<?php
+$token = bin2hex(random_bytes(16));
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults).toHaveLength(0);
+    });
+
+    it('should not flag random_int() (safe alternative)', () => {
+      const code = `<?php
+$id = random_int(100000, 999999);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults).toHaveLength(0);
+    });
+
+    it('should not flag commented-out code', () => {
+      const code = `<?php
+// $token = rand(0, 999999);
+# $key = md5(mt_rand());
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults).toHaveLength(0);
+    });
+
+    it('should not flag array_rand()', () => {
+      const code = `<?php
+$items = array_rand($choices, 3);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const rngResults = results.filter((r) => r.ruleId === 'security-insecure-random');
+      expect(rngResults).toHaveLength(0);
+    });
+  });
+
   describe('Options', () => {
     it('should respect security option when disabled', () => {
       const code = `<?php
