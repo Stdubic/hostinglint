@@ -17,6 +17,8 @@ test-results.json
 
 # IDE
 .idea/
+.cursor/
+.cursorrules
 *.swp
 *.swo
 *~
@@ -44,6 +46,7 @@ docs/nlnet-print/
 docs/nlnet-pdf/
 docs/nlnet-submission/
 docs/GENAI-DISCLOSURE.md
+scripts/test-anthropic-api-key.mjs
 scripts/build-nlnet-print-html.mjs
 scripts/nlnet-html-to-pdf.mjs
 scripts/build-nlnet-submission.mjs
