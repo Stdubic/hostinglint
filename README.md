@@ -1,5 +1,9 @@
 # HostingLint
 
+[![CI](https://github.com/Stdubic/hostinglint/actions/workflows/ci.yml/badge.svg)](https://github.com/Stdubic/hostinglint/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@hostinglint/core)](https://www.npmjs.com/package/@hostinglint/core)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Static analysis toolkit for hosting control panel modules. Validates WHMCS (PHP), cPanel (Perl), and OpenPanel modules for syntax, compatibility, security, and best practices.
 
 **Package documentation (install, CLI, API):** [stdub.org/hostinglint](https://stdub.org/hostinglint/)
@@ -35,7 +39,7 @@ hostinglint check ./my-module/
 
 ## Features
 
-- **31 lint rules** across 3 platforms (WHMCS, cPanel, OpenPanel)
+- **32 lint rules** across 3 platforms (WHMCS, cPanel, OpenPanel)
 - **WHMCS module analysis** — PHP 7.4-8.3 compatibility, WHMCS 8.11-8.13 API rules, security checks
 - **cPanel plugin analysis** — Perl 5.36+, cPanel v132-v134 compatibility, taint detection
 - **OpenPanel extension analysis** — Dockerfile best practices, Docker security, OpenCLI validation
@@ -101,9 +105,9 @@ const opResults = analyzeOpenPanel(dockerfile, 'Dockerfile');
 
 ## Rules
 
-31 rules across 3 platforms. See [docs/RULES.md](docs/RULES.md) for full documentation.
+32 rules across 3 platforms. See [docs/RULES.md](docs/RULES.md) for full documentation.
 
-### PHP / WHMCS (16 rules)
+### PHP / WHMCS (17 rules)
 
 | Rule ID | Severity | Description |
 |---------|----------|-------------|
@@ -229,4 +233,4 @@ HostingLint is an open-source project seeking funding through the [NLnet NGI Zer
 
 ## License
 
-MIT
+[MIT](LICENSE) — see [LICENSE](LICENSE) for details.

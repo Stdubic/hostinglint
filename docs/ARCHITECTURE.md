@@ -10,30 +10,26 @@
 
 HostingLint is a static analysis engine that validates hosting control panel modules across three platforms using a unified TypeScript architecture.
 
-```
-  ┌──────────────────┐       ┌──────────────────────┐
-  │  CLI (hostinglint)    │       │  VS Code Extension      │
-  │  Commander.js + SARIF │       │  Diagnostics + Hover     │
-  └────────┬─────────┘       └──────────┬───────────┘
-           │                             │
-           └──────────┬──────────────────┘
-                      │
-             ┌────────▼────────┐
-             │  @hostinglint/core     │
-             │  analyzeAuto() + API   │
-             └────────┬────────┘
-                      │
-      ┌───────────────┼───────────────────┐
-      │               │                   │
- ┌────▼──────┐  ┌─────▼──────┐  ┌────────▼────────┐
- │ PHP        │  │ Perl        │  │ OpenPanel        │
- │ WHMCS      │  │ cPanel      │  │ Docker extensions│
- └────┬──────┘  └─────┬──────┘  └────────┬────────┘
-      │               │                   │
- ┌────▼──────┐  ┌─────▼──────┐  ┌────────▼────────┐
- │ PHP Rules  │  │ Perl Rules  │  │ OpenPanel Rules  │
- │ + Common   │  │ + Common    │  │ + Common         │
- └───────────┘  └────────────┘  └─────────────────┘
+```mermaid
+flowchart TD
+  Cli["CLI (hostinglint)\nCommander.js + SARIF"]
+  Vscode["VS Code Extension\nDiagnostics + Hover"]
+  Core["@hostinglint/core\nanalyzeAuto() + API"]
+  Php["PHP / WHMCS"]
+  Perl["Perl / cPanel"]
+  OpenPanel["OpenPanel / Docker extensions"]
+  PhpRules["PHP Rules + Common"]
+  PerlRules["Perl Rules + Common"]
+  OpenPanelRules["OpenPanel Rules + Common"]
+
+  Cli --> Core
+  Vscode --> Core
+  Core --> Php
+  Core --> Perl
+  Core --> OpenPanel
+  Php --> PhpRules
+  Perl --> PerlRules
+  OpenPanel --> OpenPanelRules
 ```
 
 ## Package Structure
@@ -94,11 +90,25 @@ hostinglint/
 
 ### Data Flow
 
-```
-Input File  →  analyzeAuto()  →  Select Rules  →  Run Checks  →  Apply Overrides  →  Output
-   .php      detect: WHMCS      PHP rules         regex match     rule overrides      text/json/sarif
-   .pl       detect: cPanel     Perl rules        per-line scan   severity changes    vscode diagnostics
-   Dockerfile detect: OpenPanel  OpenPanel rules   + context       'off' filtering
+```mermaid
+flowchart LR
+  Input["Input File"]
+  Detect["detectPlatform()"]
+  Analyze["analyzeAuto()"]
+  Select["Select Rules"]
+  Checks["Run Checks"]
+  Overrides["Apply Overrides"]
+  Output["Output: text/json/sarif"]
+
+  Input --> Detect --> Analyze --> Select --> Checks --> Overrides --> Output
+
+  PhpPath[".php -> WHMCS rules"]
+  PerlPath[".pl -> cPanel rules"]
+  OpPath["Dockerfile/manifest -> OpenPanel rules"]
+
+  Detect --> PhpPath
+  Detect --> PerlPath
+  Detect --> OpPath
 ```
 
 The unified `analyzeAuto()` entry point (in `packages/core/src/analyze.ts`) handles platform detection, analyzer dispatch, and rule overrides. Both the CLI and VS Code extension use this single function.

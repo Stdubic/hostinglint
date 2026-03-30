@@ -24,6 +24,22 @@
   },
   "author": "Stdubic",
   "license": "MIT",
+  "homepage": "https://github.com/Stdubic/hostinglint#readme",
+  "bugs": {
+    "url": "https://github.com/Stdubic/hostinglint/issues"
+  },
+  "keywords": [
+    "static-analysis",
+    "linter",
+    "hosting",
+    "whmcs",
+    "cpanel",
+    "openpanel",
+    "security",
+    "php",
+    "perl",
+    "docker"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/Stdubic/hostinglint.git"

@@ -42,6 +42,10 @@ docs/RULES-ROADMAP.md
 docs/NPM-PUBLISH.md
 docs/nlnet-print/
 docs/nlnet-pdf/
+docs/nlnet-submission/
+docs/GENAI-DISCLOSURE.md
 scripts/build-nlnet-print-html.mjs
 scripts/nlnet-html-to-pdf.mjs
+scripts/build-nlnet-submission.mjs
+scripts/nlnet-submission-to-pdf.mjs
 .cursor/plans/

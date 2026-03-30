@@ -1,7 +1,7 @@
 # HostingLint Performance Benchmarks
 
 **Date:** February 12, 2026
-**Rules:** 28 across 3 platforms
+**Rules:** 32 across 3 platforms
 **Runtime:** Node.js v24.13.0, macOS
 **Method:** 100 iterations per file, average and P95 reported
 
@@ -45,7 +45,7 @@
 
 ## Scaling Projections
 
-At ~0.3 ms per 100-line PHP file with all 28 rules:
+At ~0.3 ms per 100-line PHP file with all 32 rules:
 - 1,000-line module: ~3 ms (well under 100 ms target)
 - 5,000-line project: ~15 ms
 - 10,000-line project: ~30 ms

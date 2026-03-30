@@ -26,7 +26,7 @@ If you see all green (lint, typecheck, 144 tests pass, build), you're ready.
 ## Project Status
 
 - **Version:** 0.1.0 (alpha)
-- **Rules:** 31 across 3 platforms
+- **Rules:** 32 across 3 platforms
 - **Tests:** 144 (100% coverage on rule files)
 - **Grant:** Applying to NLnet NGI Zero Commons Fund (EUR 35,000, deadline April 1, 2026)
 - **License:** MIT
@@ -133,7 +133,7 @@ I'm working on an open-source project called **HostingLint** -- a static analysi
 The project is MIT-licensed, built with TypeScript/Node.js, and we're applying for an NLnet NGI Zero Commons Fund grant (EUR 35,000).
 
 **Current status:**
-- 31 lint rules across 3 platforms
+- 32 lint rules across 3 platforms
 - 144 automated tests, full CI/CD
 - Sub-millisecond analysis performance
 - GitHub: https://github.com/Stdubic/hostinglint
