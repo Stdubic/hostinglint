@@ -7,7 +7,7 @@ import { phpSecurityRules } from './security.js';
 import { whmcsRules } from './whmcs.js';
 
 // Re-export individual rules for direct access
-export { phpEachRemoved, phpCreateFunction, phpMysqlFunctions, phpCurlyBraces } from './compatibility.js';
+export { phpEachRemoved, phpCreateFunction, phpMysqlFunctions, phpCurlyBraces, phpUtf8Encode, phpDollarBrace, phpDynamicProperties } from './compatibility.js';
 export { phpSqlInjection, phpXss, phpPathTraversal, phpDeserialization, phpSsrf, phpWeakCrypto, phpCommandInjection } from './security.js';
 export { whmcsMetadata, whmcsDeprecated, whmcsHookErrorHandling, whmcsConfigFunction, whmcsLicenseCheck, whmcsReturnFormat } from './whmcs.js';
 

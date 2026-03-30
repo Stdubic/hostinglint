@@ -175,10 +175,171 @@ export const phpCurlyBraces: Rule = {
   },
 };
 
+/**
+ * Rule: Detect utf8_encode()/utf8_decode() deprecated in PHP 8.2
+ */
+export const phpUtf8Encode: Rule = {
+  id: 'php-compat-utf8-encode',
+  description: 'utf8_encode()/utf8_decode() are deprecated in PHP 8.2.',
+  severity: 'error',
+  category: 'compatibility',
+  platform: 'whmcs',
+  minPhpVersion: '8.2',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      const match = line.match(/\b(utf8_encode|utf8_decode)\s*\(/);
+      if (match && match.index !== undefined) {
+        results.push({
+          file: filePath,
+          line: i + 1,
+          column: match.index + 1,
+          message: `${match[1]}() is deprecated in PHP 8.2. Use mb_convert_encoding() instead.`,
+          ruleId: 'php-compat-utf8-encode',
+          severity: 'error',
+          category: 'compatibility',
+          fix: `Replace ${match[1]}() with mb_convert_encoding($string, 'UTF-8', 'ISO-8859-1') or mb_convert_encoding($string, 'ISO-8859-1', 'UTF-8').`,
+        });
+      }
+    }
+
+    return results;
+  },
+};
+
+/**
+ * Rule: Detect "${var}" string interpolation deprecated in PHP 8.2
+ */
+export const phpDollarBrace: Rule = {
+  id: 'php-compat-dollar-brace',
+  description: '"${var}" string interpolation syntax is deprecated in PHP 8.2.',
+  severity: 'error',
+  category: 'compatibility',
+  platform: 'whmcs',
+  minPhpVersion: '8.2',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      const match = line.match(/\$\{(?!\$)\w/);
+      if (match && match.index !== undefined) {
+        results.push({
+          file: filePath,
+          line: i + 1,
+          column: match.index + 1,
+          message: '"${var}" string interpolation syntax is deprecated in PHP 8.2. Use "{$var}" or string concatenation instead.',
+          ruleId: 'php-compat-dollar-brace',
+          severity: 'error',
+          category: 'compatibility',
+          fix: 'Replace "${var}" with "{$var}" or use concatenation: "text " . $var . " text".',
+        });
+      }
+    }
+
+    return results;
+  },
+};
+
+/**
+ * Rule: Detect dynamic properties deprecated in PHP 8.2
+ */
+export const phpDynamicProperties: Rule = {
+  id: 'php-compat-dynamic-properties',
+  description: 'Dynamic properties are deprecated in PHP 8.2. Declare properties or use #[AllowDynamicProperties].',
+  severity: 'error',
+  category: 'compatibility',
+  platform: 'whmcs',
+  minPhpVersion: '8.2',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    let inClass = false;
+    let classStartLine = -1;
+    let braceDepth = 0;
+    let hasAllowDynamic = false;
+    let declaredProps = new Set<string>();
+    const assignments: Array<{ prop: string; line: number; column: number }> = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (/\#\[AllowDynamicProperties\]/.test(line)) {
+        hasAllowDynamic = true;
+      }
+
+      const classMatch = line.match(/\bclass\s+\w+/);
+      if (classMatch && !inClass) {
+        inClass = true;
+        classStartLine = i;
+        braceDepth = 0;
+        declaredProps = new Set<string>();
+        assignments.length = 0;
+      }
+
+      if (inClass) {
+        for (const ch of line) {
+          if (ch === '{') braceDepth++;
+          if (ch === '}') braceDepth--;
+        }
+
+        const propMatch = line.match(/\b(?:public|protected|private)\s+(?:readonly\s+)?(?:\?\s*)?(?:\w+\s+)?\$(\w+)/);
+        if (propMatch) {
+          declaredProps.add(propMatch[1]);
+        }
+
+        const thisMatch = line.match(/\$this\s*->\s*(\w+)\s*=/);
+        if (thisMatch && thisMatch.index !== undefined) {
+          assignments.push({ prop: thisMatch[1], line: i + 1, column: thisMatch.index + 1 });
+        }
+
+        if (braceDepth === 0 && i > classStartLine) {
+          if (!hasAllowDynamic) {
+            for (const assign of assignments) {
+              if (!declaredProps.has(assign.prop)) {
+                results.push({
+                  file: filePath,
+                  line: assign.line,
+                  column: assign.column,
+                  message: `Dynamic property "$${assign.prop}" is deprecated in PHP 8.2. Declare the property on the class or add #[AllowDynamicProperties].`,
+                  ruleId: 'php-compat-dynamic-properties',
+                  severity: 'error',
+                  category: 'compatibility',
+                  fix: `Add "public $${assign.prop};" property declaration to the class, or add #[AllowDynamicProperties] attribute.`,
+                });
+              }
+            }
+          }
+          inClass = false;
+          hasAllowDynamic = false;
+          assignments.length = 0;
+        }
+      }
+    }
+
+    return results;
+  },
+};
+
 /** All PHP compatibility rules */
 export const phpCompatibilityRules: Rule[] = [
   phpEachRemoved,
   phpCreateFunction,
   phpMysqlFunctions,
   phpCurlyBraces,
+  phpUtf8Encode,
+  phpDollarBrace,
+  phpDynamicProperties,
 ];

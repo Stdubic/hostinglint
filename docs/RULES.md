@@ -1,10 +1,10 @@
 # HostingLint Rules Reference
 
-Complete reference of all 32 rules across all platforms.
+Complete reference of all 35 rules across all platforms.
 
 ---
 
-## PHP / WHMCS Rules (17 rules)
+## PHP / WHMCS Rules (20 rules)
 
 ### Compatibility Rules
 
@@ -75,6 +75,69 @@ $char = $string{0};
 
 // Good
 $char = $string[0];
+```
+
+#### `php-compat-utf8-encode`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | compatibility |
+| **Min PHP** | 8.2 |
+
+Detects usage of `utf8_encode()` and `utf8_decode()` which are deprecated in PHP 8.2.
+
+```php
+// Bad
+$encoded = utf8_encode($string);
+$decoded = utf8_decode($string);
+
+// Good
+$encoded = mb_convert_encoding($string, 'UTF-8', 'ISO-8859-1');
+$decoded = mb_convert_encoding($string, 'ISO-8859-1', 'UTF-8');
+```
+
+#### `php-compat-dollar-brace`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | compatibility |
+| **Min PHP** | 8.2 |
+
+Detects `"${var}"` string interpolation syntax which is deprecated in PHP 8.2.
+
+```php
+// Bad
+$msg = "Hello ${name}";
+
+// Good
+$msg = "Hello {$name}";
+$msg = "Hello " . $name;
+```
+
+#### `php-compat-dynamic-properties`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | compatibility |
+| **Min PHP** | 8.2 |
+
+Detects dynamic property assignments on classes that don't declare the property. Classes with `#[AllowDynamicProperties]` attribute are excluded.
+
+```php
+// Bad
+class User {
+    public function init() {
+        $this->name = 'John'; // $name not declared
+    }
+}
+
+// Good
+class User {
+    public string $name;
+    public function init() {
+        $this->name = 'John';
+    }
+}
 ```
 
 #### `whmcs-metadata`

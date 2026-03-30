@@ -24,7 +24,8 @@ vulnerable/
 │   ├── xss_vulnerability.php
 │   ├── deprecated_functions.php
 │   ├── insecure_api_calls.php
-│   └── command_injection.php
+│   ├── command_injection.php
+│   └── deprecated_php82.php
 ├── cpanel-vulnerable/           # Perl-based cPanel plugins with security flaws
 │   ├── unsafe_file_operations.pl
 │   ├── sql_injection.pl
@@ -134,6 +135,23 @@ npx hostinglint examples/vulnerable/whmcs-vulnerable/insecure_api_calls.php
 **Test command:**
 ```bash
 npx hostinglint examples/vulnerable/whmcs-vulnerable/command_injection.php
+```
+
+### deprecated_php82.php
+
+**Vulnerabilities:**
+- `utf8_encode()` and `utf8_decode()` deprecated in PHP 8.2
+- `"${var}"` string interpolation deprecated in PHP 8.2
+- Dynamic properties without declaration deprecated in PHP 8.2
+
+**Rules that should trigger:**
+- `php-compat-utf8-encode`
+- `php-compat-dollar-brace`
+- `php-compat-dynamic-properties`
+
+**Test command:**
+```bash
+npx hostinglint examples/vulnerable/whmcs-vulnerable/deprecated_php82.php
 ```
 
 ## cPanel Vulnerable Plugins (Perl)

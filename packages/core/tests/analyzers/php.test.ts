@@ -727,6 +727,170 @@ exec("ping " . escapeshellarg($_GET['host']));
     });
   });
 
+  describe('utf8_encode/utf8_decode detection', () => {
+    it('should detect utf8_encode()', () => {
+      const code = `<?php
+$encoded = utf8_encode($string);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const encResults = results.filter((r) => r.ruleId === 'php-compat-utf8-encode');
+      expect(encResults).toHaveLength(1);
+      expect(encResults[0].severity).toBe('error');
+    });
+
+    it('should detect utf8_decode()', () => {
+      const code = `<?php
+$decoded = utf8_decode($string);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const encResults = results.filter((r) => r.ruleId === 'php-compat-utf8-encode');
+      expect(encResults).toHaveLength(1);
+    });
+
+    it('should not flag mb_convert_encoding()', () => {
+      const code = `<?php
+$encoded = mb_convert_encoding($string, 'UTF-8', 'ISO-8859-1');
+`;
+      const results = analyzePhp(code, 'module.php');
+      const encResults = results.filter((r) => r.ruleId === 'php-compat-utf8-encode');
+      expect(encResults).toHaveLength(0);
+    });
+
+    it('should not flag for PHP 8.1', () => {
+      const code = `<?php
+$encoded = utf8_encode($string);
+`;
+      const results = analyzePhp(code, 'module.php', { phpVersion: '8.1' });
+      const encResults = results.filter((r) => r.ruleId === 'php-compat-utf8-encode');
+      expect(encResults).toHaveLength(0);
+    });
+  });
+
+  describe('Dollar-brace interpolation detection', () => {
+    it('should detect "${var}" syntax', () => {
+      const code = `<?php
+$name = "world";
+$msg = "Hello \${name}";
+`;
+      const results = analyzePhp(code, 'module.php');
+      const dbResults = results.filter((r) => r.ruleId === 'php-compat-dollar-brace');
+      expect(dbResults).toHaveLength(1);
+      expect(dbResults[0].severity).toBe('error');
+    });
+
+    it('should not flag "{$var}" syntax', () => {
+      const code = `<?php
+$msg = "Hello {$name}";
+`;
+      const results = analyzePhp(code, 'module.php');
+      const dbResults = results.filter((r) => r.ruleId === 'php-compat-dollar-brace');
+      expect(dbResults).toHaveLength(0);
+    });
+
+    it('should not flag normal variable interpolation', () => {
+      const code = `<?php
+$msg = "Hello $name";
+$msg2 = "Count: " . $count;
+`;
+      const results = analyzePhp(code, 'module.php');
+      const dbResults = results.filter((r) => r.ruleId === 'php-compat-dollar-brace');
+      expect(dbResults).toHaveLength(0);
+    });
+
+    it('should not flag for PHP 8.1', () => {
+      const code = `<?php
+$msg = "Hello \${name}";
+`;
+      const results = analyzePhp(code, 'module.php', { phpVersion: '8.1' });
+      const dbResults = results.filter((r) => r.ruleId === 'php-compat-dollar-brace');
+      expect(dbResults).toHaveLength(0);
+    });
+  });
+
+  describe('Dynamic properties detection', () => {
+    it('should detect undeclared property assignment', () => {
+      const code = `<?php
+class User {
+    public function init() {
+        $this->name = 'John';
+    }
+}
+`;
+      const results = analyzePhp(code, 'module.php');
+      const dpResults = results.filter((r) => r.ruleId === 'php-compat-dynamic-properties');
+      expect(dpResults).toHaveLength(1);
+      expect(dpResults[0].severity).toBe('error');
+    });
+
+    it('should not flag declared property', () => {
+      const code = `<?php
+class User {
+    public string $name;
+    public function init() {
+        $this->name = 'John';
+    }
+}
+`;
+      const results = analyzePhp(code, 'module.php');
+      const dpResults = results.filter((r) => r.ruleId === 'php-compat-dynamic-properties');
+      expect(dpResults).toHaveLength(0);
+    });
+
+    it('should not flag class with #[AllowDynamicProperties]', () => {
+      const code = `<?php
+#[AllowDynamicProperties]
+class LegacyUser {
+    public function init() {
+        $this->name = 'John';
+    }
+}
+`;
+      const results = analyzePhp(code, 'module.php');
+      const dpResults = results.filter((r) => r.ruleId === 'php-compat-dynamic-properties');
+      expect(dpResults).toHaveLength(0);
+    });
+
+    it('should detect multiple dynamic properties', () => {
+      const code = `<?php
+class User {
+    public function init() {
+        $this->name = 'John';
+        $this->age = 30;
+    }
+}
+`;
+      const results = analyzePhp(code, 'module.php');
+      const dpResults = results.filter((r) => r.ruleId === 'php-compat-dynamic-properties');
+      expect(dpResults).toHaveLength(2);
+    });
+
+    it('should not flag for PHP 8.1', () => {
+      const code = `<?php
+class User {
+    public function init() {
+        $this->name = 'John';
+    }
+}
+`;
+      const results = analyzePhp(code, 'module.php', { phpVersion: '8.1' });
+      const dpResults = results.filter((r) => r.ruleId === 'php-compat-dynamic-properties');
+      expect(dpResults).toHaveLength(0);
+    });
+
+    it('should not flag property read (no assignment)', () => {
+      const code = `<?php
+class User {
+    public function getName() {
+        return $this->name;
+    }
+}
+`;
+      const results = analyzePhp(code, 'module.php');
+      const dpResults = results.filter((r) => r.ruleId === 'php-compat-dynamic-properties');
+      expect(dpResults).toHaveLength(0);
+    });
+  });
+
   describe('Options', () => {
     it('should respect security option when disabled', () => {
       const code = `<?php
