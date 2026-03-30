@@ -1,10 +1,10 @@
 # HostingLint Rules Reference
 
-Complete reference of all 32 rules across all platforms.
+Complete reference of all 33 rules across all platforms.
 
 ---
 
-## PHP / WHMCS Rules (17 rules)
+## PHP / WHMCS Rules (18 rules)
 
 ### Compatibility Rules
 
@@ -225,6 +225,28 @@ $result = `host $_GET['domain']`;
 // Good
 exec("ping " . escapeshellarg($_GET['host']));
 $output = shell_exec("dig " . escapeshellarg($params['domain']));
+```
+
+#### `security-insecure-random`
+| | |
+|---|---|
+| **Severity** | error |
+| **Category** | security |
+
+Detects use of cryptographically weak PRNG functions (`rand`, `mt_rand`, `uniqid`, `microtime`, `time`) for security-sensitive values like tokens, keys, secrets, nonces, and CSRF tokens (CWE-338). Also detects weak token generation patterns like `md5(rand())` or `sha1(uniqid())`.
+
+```php
+// Bad
+$token = rand(0, 999999);
+$apiKey = md5(mt_rand());
+$nonce = uniqid('', true);
+$csrf = md5(time());
+
+// Good
+$token = bin2hex(random_bytes(16));
+$apiKey = bin2hex(random_bytes(32));
+$nonce = bin2hex(random_bytes(16));
+$csrf = bin2hex(random_bytes(32));
 ```
 
 ### Best Practice Rules

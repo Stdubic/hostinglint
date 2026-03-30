@@ -294,6 +294,57 @@ export const phpCommandInjection: Rule = {
   },
 };
 
+/**
+ * Rule: Detect use of cryptographically weak PRNG for security-sensitive values
+ */
+export const phpInsecureRandom: Rule = {
+  id: 'security-insecure-random',
+  description: 'Insecure randomness: cryptographically weak PRNG used for security-sensitive value.',
+  severity: 'error',
+  category: 'security',
+  platform: 'whmcs',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    const insecureRandomPatterns = [
+      // Pattern 1: Security-named variable assigned insecure random
+      /\$(?:token|key|secret|nonce|salt|session_id|csrf|api_key|password|hash|seed)\s*=\s*.*\b(?:rand|mt_rand|uniqid|microtime|time)\s*\(/i,
+      // Pattern 2: Hash wrapping insecure random (weak token generation)
+      /\b(?:md5|sha1|hash)\s*\([^)]*\b(?:rand|mt_rand|uniqid|microtime|time)\s*\(/,
+    ];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Skip comments
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      // Skip lines with safe alternatives
+      if (/random_bytes|random_int|openssl_random_pseudo_bytes/.test(line)) continue;
+
+      for (const pattern of insecureRandomPatterns) {
+        const match = line.match(pattern);
+        if (match && match.index !== undefined) {
+          results.push({
+            file: filePath,
+            line: i + 1,
+            column: match.index + 1,
+            message: 'Insecure randomness: cryptographically weak PRNG (rand, mt_rand, uniqid, time) used for security-sensitive value. These are predictable and unsuitable for tokens, keys, or secrets (CWE-338).',
+            ruleId: 'security-insecure-random',
+            severity: 'error',
+            category: 'security',
+            fix: 'Use random_bytes(32) for raw bytes, bin2hex(random_bytes(16)) for hex tokens, or random_int() for numeric ranges. For WHMCS, use \\WHMCS\\Security::generateToken().',
+          });
+        }
+      }
+    }
+
+    return results;
+  },
+};
+
 /** All PHP security rules */
 export const phpSecurityRules: Rule[] = [
   phpSqlInjection,
@@ -303,4 +354,5 @@ export const phpSecurityRules: Rule[] = [
   phpSsrf,
   phpWeakCrypto,
   phpCommandInjection,
+  phpInsecureRandom,
 ];
