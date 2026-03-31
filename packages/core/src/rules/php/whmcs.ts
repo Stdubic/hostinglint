@@ -244,6 +244,54 @@ export const whmcsReturnFormat: Rule = {
   },
 };
 
+/**
+ * Rule: Detect direct database access instead of WHMCS Capsule ORM
+ */
+export const whmcsCapsuleOrm: Rule = {
+  id: 'whmcs-capsule-orm',
+  description: 'Direct database queries detected. Use WHMCS Capsule ORM instead.',
+  severity: 'warning',
+  category: 'best-practice',
+  platform: 'whmcs',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    const directDbPatterns = [
+      { pattern: /\bnew\s+PDO\s*\(/, msg: 'new PDO()' },
+      { pattern: /\$\w+->query\s*\(\s*["'](?:SELECT|INSERT|UPDATE|DELETE)/i, msg: 'PDO::query() with SQL' },
+      { pattern: /\$\w+->exec\s*\(\s*["'](?:INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)/i, msg: 'PDO::exec() with SQL' },
+      { pattern: /\bmysqli_connect\s*\(/, msg: 'mysqli_connect()' },
+      { pattern: /\bmysqli_query\s*\(/, msg: 'mysqli_query()' },
+      { pattern: /\bnew\s+mysqli\s*\(/, msg: 'new mysqli()' },
+    ];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      for (const { pattern, msg } of directDbPatterns) {
+        const match = line.match(pattern);
+        if (match && match.index !== undefined) {
+          results.push({
+            file: filePath,
+            line: i + 1,
+            column: match.index + 1,
+            message: `Direct database access via ${msg}. Use WHMCS Capsule ORM (\\WHMCS\\Database\\Capsule) for database operations.`,
+            ruleId: 'whmcs-capsule-orm',
+            severity: 'warning',
+            category: 'best-practice',
+            fix: 'Use Capsule::table("tablename")->where(...)->get() or Capsule::select() for queries.',
+          });
+        }
+      }
+    }
+
+    return results;
+  },
+};
+
 /** All WHMCS-specific rules */
 export const whmcsRules: Rule[] = [
   whmcsMetadata,
@@ -252,4 +300,5 @@ export const whmcsRules: Rule[] = [
   whmcsConfigFunction,
   whmcsLicenseCheck,
   whmcsReturnFormat,
+  whmcsCapsuleOrm,
 ];

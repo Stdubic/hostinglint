@@ -727,6 +727,135 @@ exec("ping " . escapeshellarg($_GET['host']));
     });
   });
 
+  describe('Capsule ORM detection', () => {
+    it('should detect new PDO()', () => {
+      const code = `<?php
+$pdo = new PDO("mysql:host=localhost;dbname=whmcs", "root", "pass");
+`;
+      const results = analyzePhp(code, 'module.php');
+      const ormResults = results.filter((r) => r.ruleId === 'whmcs-capsule-orm');
+      expect(ormResults).toHaveLength(1);
+      expect(ormResults[0].severity).toBe('warning');
+    });
+
+    it('should detect mysqli_query()', () => {
+      const code = `<?php
+$result = mysqli_query($conn, "SELECT * FROM tblclients");
+`;
+      const results = analyzePhp(code, 'module.php');
+      const ormResults = results.filter((r) => r.ruleId === 'whmcs-capsule-orm');
+      expect(ormResults).toHaveLength(1);
+    });
+
+    it('should not flag Capsule ORM usage', () => {
+      const code = `<?php
+use WHMCS\\Database\\Capsule;
+$clients = Capsule::table('tblclients')->where('id', $id)->first();
+`;
+      const results = analyzePhp(code, 'module.php');
+      const ormResults = results.filter((r) => r.ruleId === 'whmcs-capsule-orm');
+      expect(ormResults).toHaveLength(0);
+    });
+
+    it('should not flag commented-out code', () => {
+      const code = `<?php
+// $pdo = new PDO("mysql:host=localhost", "root", "pass");
+`;
+      const results = analyzePhp(code, 'module.php');
+      const ormResults = results.filter((r) => r.ruleId === 'whmcs-capsule-orm');
+      expect(ormResults).toHaveLength(0);
+    });
+  });
+
+  describe('Insecure session detection', () => {
+    it('should detect session.use_trans_sid enabled', () => {
+      const code = `<?php
+ini_set('session.use_trans_sid', 1);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const sessResults = results.filter((r) => r.ruleId === 'security-insecure-session');
+      expect(sessResults).toHaveLength(1);
+      expect(sessResults[0].severity).toBe('warning');
+    });
+
+    it('should detect session_set_cookie_params with secure false', () => {
+      const code = `<?php
+session_set_cookie_params(['secure' => false, 'httponly' => true]);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const sessResults = results.filter((r) => r.ruleId === 'security-insecure-session');
+      expect(sessResults).toHaveLength(1);
+    });
+
+    it('should not flag secure session settings', () => {
+      const code = `<?php
+ini_set('session.cookie_secure', 1);
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_strict_mode', 1);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const sessResults = results.filter((r) => r.ruleId === 'security-insecure-session');
+      expect(sessResults).toHaveLength(0);
+    });
+
+    it('should not flag commented-out session config', () => {
+      const code = `<?php
+// ini_set('session.use_trans_sid', 1);
+`;
+      const results = analyzePhp(code, 'module.php');
+      const sessResults = results.filter((r) => r.ruleId === 'security-insecure-session');
+      expect(sessResults).toHaveLength(0);
+    });
+  });
+
+  describe('Race condition detection', () => {
+    it('should detect file_exists followed by fopen', () => {
+      const code = `<?php
+if (file_exists($path)) {
+    $fh = fopen($path, 'r');
+}
+`;
+      const results = analyzePhp(code, 'module.php');
+      const raceResults = results.filter((r) => r.ruleId === 'security-race-condition');
+      expect(raceResults).toHaveLength(1);
+      expect(raceResults[0].severity).toBe('warning');
+    });
+
+    it('should detect is_dir followed by mkdir within 3 lines', () => {
+      const code = `<?php
+if (!is_dir($dir)) {
+    // Create directory
+    mkdir($dir, 0755, true);
+}
+`;
+      const results = analyzePhp(code, 'module.php');
+      const raceResults = results.filter((r) => r.ruleId === 'security-race-condition');
+      expect(raceResults).toHaveLength(1);
+    });
+
+    it('should not flag fopen without prior file check', () => {
+      const code = `<?php
+$fh = fopen($path, 'r');
+`;
+      const results = analyzePhp(code, 'module.php');
+      const raceResults = results.filter((r) => r.ruleId === 'security-race-condition');
+      expect(raceResults).toHaveLength(0);
+    });
+
+    it('should not flag file_exists without subsequent file operation', () => {
+      const code = `<?php
+if (file_exists($path)) {
+    echo "File found";
+    log("exists");
+    return true;
+}
+`;
+      const results = analyzePhp(code, 'module.php');
+      const raceResults = results.filter((r) => r.ruleId === 'security-race-condition');
+      expect(raceResults).toHaveLength(0);
+    });
+  });
+
   describe('Options', () => {
     it('should respect security option when disabled', () => {
       const code = `<?php

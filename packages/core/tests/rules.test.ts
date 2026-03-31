@@ -15,7 +15,7 @@ import type { Rule } from '@hostinglint/core';
 describe('Rule Registry', () => {
   it('should have PHP rules', () => {
     expect(phpRules.length).toBeGreaterThan(0);
-    expect(phpRules.length).toBe(17);
+    expect(phpRules.length).toBe(19);
   });
 
   it('should have Perl rules', () => {
@@ -30,7 +30,7 @@ describe('Rule Registry', () => {
 
   it('should have cross-platform rules', () => {
     expect(crossPlatformRules.length).toBeGreaterThan(0);
-    expect(crossPlatformRules.length).toBe(3);
+    expect(crossPlatformRules.length).toBe(4);
   });
 
   it('should include all rules in allRules', () => {
@@ -39,8 +39,8 @@ describe('Rule Registry', () => {
     );
   });
 
-  it('should have 32 total rules', () => {
-    expect(allRules.length).toBe(32);
+  it('should have 35 total rules', () => {
+    expect(allRules.length).toBe(35);
   });
 
   it('should have unique rule IDs', () => {

@@ -6,7 +6,7 @@ import { commonSecurityRules } from './security.js';
 import { commonBestPracticeRules } from './best-practice.js';
 
 // Re-export individual rules
-export { securityHardcodedCredentials, securityEvalUsage } from './security.js';
+export { securityHardcodedCredentials, securityEvalUsage, securityRaceCondition } from './security.js';
 export { bestPracticeTodoFixme } from './best-practice.js';
 
 // Re-export group arrays

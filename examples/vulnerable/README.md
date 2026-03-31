@@ -24,7 +24,8 @@ vulnerable/
 │   ├── xss_vulnerability.php
 │   ├── deprecated_functions.php
 │   ├── insecure_api_calls.php
-│   └── command_injection.php
+│   ├── command_injection.php
+│   └── insecure_sessions.php
 ├── cpanel-vulnerable/           # Perl-based cPanel plugins with security flaws
 │   ├── unsafe_file_operations.pl
 │   ├── sql_injection.pl
@@ -134,6 +135,23 @@ npx hostinglint examples/vulnerable/whmcs-vulnerable/insecure_api_calls.php
 **Test command:**
 ```bash
 npx hostinglint examples/vulnerable/whmcs-vulnerable/command_injection.php
+```
+
+### insecure_sessions.php
+
+**Vulnerabilities:**
+- Insecure session configuration (`use_trans_sid`, `use_only_cookies`, `cookie_httponly`, etc.)
+- Direct database access via `new PDO()` and `mysqli_query()` instead of Capsule ORM
+- TOCTOU race conditions (`file_exists()` followed by `file_get_contents()`)
+
+**Rules that should trigger:**
+- `security-insecure-session`
+- `whmcs-capsule-orm`
+- `security-race-condition`
+
+**Test command:**
+```bash
+npx hostinglint examples/vulnerable/whmcs-vulnerable/insecure_sessions.php
 ```
 
 ## cPanel Vulnerable Plugins (Perl)

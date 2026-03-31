@@ -1,10 +1,10 @@
 # HostingLint Rules Reference
 
-Complete reference of all 32 rules across all platforms.
+Complete reference of all 35 rules across all platforms.
 
 ---
 
-## PHP / WHMCS Rules (17 rules)
+## PHP / WHMCS Rules (19 rules)
 
 ### Compatibility Rules
 
@@ -227,6 +227,27 @@ exec("ping " . escapeshellarg($_GET['host']));
 $output = shell_exec("dig " . escapeshellarg($params['domain']));
 ```
 
+#### `security-insecure-session`
+| | |
+|---|---|
+| **Severity** | warning |
+| **Category** | security |
+
+Detects insecure PHP session configuration via `ini_set()` and `session_set_cookie_params()`. Covers: `use_trans_sid`, `use_only_cookies`, `use_strict_mode`, `cookie_httponly`, and `cookie_secure`.
+
+```php
+// Bad
+ini_set('session.use_trans_sid', 1);
+ini_set('session.cookie_secure', 0);
+session_set_cookie_params(['secure' => false]);
+
+// Good
+ini_set('session.use_trans_sid', 0);
+ini_set('session.cookie_secure', 1);
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_strict_mode', 1);
+```
+
 ### Best Practice Rules
 
 #### `whmcs-hook-error-handling`
@@ -244,6 +265,24 @@ Detects WHMCS hook callbacks without try/catch error handling.
 | **Category** | best-practice |
 
 Detects modules that appear to lack license validation (for commercial modules).
+
+#### `whmcs-capsule-orm`
+| | |
+|---|---|
+| **Severity** | warning |
+| **Category** | best-practice |
+
+Detects direct database access via `new PDO()`, `mysqli_connect()`, `mysqli_query()`, and raw SQL queries. WHMCS modules should use the Capsule ORM (`\WHMCS\Database\Capsule`).
+
+```php
+// Bad
+$pdo = new PDO("mysql:host=localhost;dbname=whmcs", "root", "pass");
+$result = mysqli_query($conn, "SELECT * FROM tblclients");
+
+// Good
+use WHMCS\Database\Capsule;
+$client = Capsule::table('tblclients')->where('id', $id)->first();
+```
 
 ---
 
@@ -357,7 +396,7 @@ Checks for missing input validation in OpenCLI command scripts.
 
 ---
 
-## Cross-Platform Rules (3 rules)
+## Cross-Platform Rules (4 rules)
 
 These rules apply to all platforms and languages.
 
@@ -384,6 +423,28 @@ Detects usage of `eval()` which can execute arbitrary code.
 | **Category** | best-practice |
 
 Detects TODO, FIXME, HACK, XXX, and BUG comments indicating incomplete code.
+
+#### `security-race-condition`
+| | |
+|---|---|
+| **Severity** | warning |
+| **Category** | security |
+
+Detects TOCTOU (time-of-check/time-of-use) race conditions where a file existence check (`file_exists`, `is_file`, `is_dir`) is followed by a file operation (`fopen`, `unlink`, `mkdir`) within 5 lines (CWE-367).
+
+```php
+// Bad
+if (file_exists($path)) {
+    $content = file_get_contents($path);
+}
+
+// Good
+$fh = @fopen($path, 'r');
+if ($fh !== false) {
+    $content = fread($fh, filesize($path));
+    fclose($fh);
+}
+```
 
 ---
 

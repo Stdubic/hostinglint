@@ -102,8 +102,54 @@ export const securityEvalUsage: Rule = {
   },
 };
 
+/**
+ * Rule: Detect TOCTOU race conditions in file operations
+ */
+export const securityRaceCondition: Rule = {
+  id: 'security-race-condition',
+  description: 'Potential TOCTOU race condition: file check followed by file operation.',
+  severity: 'warning',
+  category: 'security',
+  platform: 'all',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    const checkFunctions = /\b(?:file_exists|is_file|is_dir|is_writable|is_readable)\s*\(/;
+    const actFunctions = /\b(?:fopen|file_get_contents|file_put_contents|unlink|rmdir|mkdir|rename|copy|chmod)\s*\(/;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      if (checkFunctions.test(line)) {
+        const lookAhead = lines.slice(i + 1, Math.min(i + 6, lines.length));
+        for (let j = 0; j < lookAhead.length; j++) {
+          if (actFunctions.test(lookAhead[j])) {
+            results.push({
+              file: filePath,
+              line: i + 1,
+              column: 1,
+              message: 'Potential TOCTOU race condition: file existence check followed by file operation. The file state may change between check and use (CWE-367).',
+              ruleId: 'security-race-condition',
+              severity: 'warning',
+              category: 'security',
+              fix: 'Use atomic operations: open file directly and handle errors, or use file locking (flock). Avoid check-then-act patterns.',
+            });
+            break;
+          }
+        }
+      }
+    }
+
+    return results;
+  },
+};
+
 /** All cross-platform security rules */
 export const commonSecurityRules: Rule[] = [
   securityHardcodedCredentials,
   securityEvalUsage,
+  securityRaceCondition,
 ];

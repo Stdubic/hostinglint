@@ -294,6 +294,55 @@ export const phpCommandInjection: Rule = {
   },
 };
 
+/**
+ * Rule: Detect insecure PHP session configuration
+ */
+export const phpInsecureSession: Rule = {
+  id: 'security-insecure-session',
+  description: 'Insecure PHP session configuration detected.',
+  severity: 'warning',
+  category: 'security',
+  platform: 'whmcs',
+  check: (context: RuleContext): LintResult[] => {
+    const { code, filePath } = context;
+    const results: LintResult[] = [];
+    const lines = code.split('\n');
+
+    const insecureSessionPatterns = [
+      { pattern: /\bini_set\s*\(\s*['"]session\.use_trans_sid['"]\s*,\s*['"]?1['"]?\s*\)/, msg: 'session.use_trans_sid enabled — session IDs will appear in URLs' },
+      { pattern: /\bini_set\s*\(\s*['"]session\.use_only_cookies['"]\s*,\s*['"]?0['"]?\s*\)/, msg: 'session.use_only_cookies disabled — sessions can be hijacked via URL parameters' },
+      { pattern: /\bini_set\s*\(\s*['"]session\.use_strict_mode['"]\s*,\s*['"]?0['"]?\s*\)/, msg: 'session.use_strict_mode disabled — server accepts uninitialized session IDs' },
+      { pattern: /\bini_set\s*\(\s*['"]session\.cookie_httponly['"]\s*,\s*['"]?(?:0|false)['"]?\s*\)/i, msg: 'session.cookie_httponly disabled — session cookie accessible to JavaScript (XSS risk)' },
+      { pattern: /\bini_set\s*\(\s*['"]session\.cookie_secure['"]\s*,\s*['"]?(?:0|false)['"]?\s*\)/i, msg: 'session.cookie_secure disabled — session cookie sent over unencrypted HTTP' },
+      { pattern: /\bsession_set_cookie_params\s*\([^)]*['"]secure['"]\s*=>\s*false/i, msg: 'Session cookie secure flag set to false — cookie sent over unencrypted HTTP' },
+      { pattern: /\bsession_set_cookie_params\s*\([^)]*['"]httponly['"]\s*=>\s*false/i, msg: 'Session cookie httponly flag set to false — cookie accessible to JavaScript' },
+    ];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*(?:\/\/|#|\*|\/\*)/.test(line)) continue;
+
+      for (const { pattern, msg } of insecureSessionPatterns) {
+        const match = line.match(pattern);
+        if (match && match.index !== undefined) {
+          results.push({
+            file: filePath,
+            line: i + 1,
+            column: match.index + 1,
+            message: `Insecure session configuration: ${msg}.`,
+            ruleId: 'security-insecure-session',
+            severity: 'warning',
+            category: 'security',
+            fix: 'Use secure session settings: session.use_strict_mode=1, session.use_only_cookies=1, session.cookie_httponly=1, session.cookie_secure=1.',
+          });
+        }
+      }
+    }
+
+    return results;
+  },
+};
+
 /** All PHP security rules */
 export const phpSecurityRules: Rule[] = [
   phpSqlInjection,
@@ -303,4 +352,5 @@ export const phpSecurityRules: Rule[] = [
   phpSsrf,
   phpWeakCrypto,
   phpCommandInjection,
+  phpInsecureSession,
 ];
