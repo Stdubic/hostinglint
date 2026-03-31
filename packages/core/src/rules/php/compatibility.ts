@@ -157,6 +157,11 @@ export const phpCurlyBraces: Rule = {
       if (match && match.index !== undefined) {
         const before = lines[i].substring(0, match.index);
         if (!before.endsWith('{') && !before.endsWith('$')) {
+          const openBrace = lines[i].indexOf('{', match.index);
+          const closeBrace = lines[i].indexOf('}', openBrace);
+          const original = lines[i].substring(match.index, closeBrace + 1);
+          const fixed = original.replace('{', '[').replace('}', ']');
+
           results.push({
             file: filePath,
             line: i + 1,
@@ -166,6 +171,16 @@ export const phpCurlyBraces: Rule = {
             severity: 'error',
             category: 'compatibility',
             fix: 'Replace $var{key} with $var[key].',
+            fixAction: {
+              range: {
+                startLine: i + 1,
+                startCol: match.index + 1,
+                endLine: i + 1,
+                endCol: closeBrace + 2,
+              },
+              replacement: fixed,
+              description: 'Replace curly brace access with square bracket access',
+            },
           });
         }
       }

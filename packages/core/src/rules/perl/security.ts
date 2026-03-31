@@ -64,8 +64,18 @@ export const perlFilePermissions: Rule = {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      const chmodMatch = line.match(/\bchmod\s*\(?\s*0?(777|776|766|667|666)\b/);
+      const chmodMatch = line.match(/\bchmod\s*\(?\s*(0?(?:777|776|766|667|666))\b/);
       if (chmodMatch && chmodMatch.index !== undefined) {
+        const permFix: Record<string, string> = {
+          '0777': '0755', '777': '0755',
+          '0776': '0755', '776': '0755',
+          '0766': '0755', '766': '0755',
+          '0667': '0644', '667': '0644',
+          '0666': '0644', '666': '0644',
+        };
+        const safePerm = permFix[chmodMatch[1]] ?? '0644';
+        const permStart = line.indexOf(chmodMatch[1], chmodMatch.index);
+
         results.push({
           file: filePath,
           line: i + 1,
@@ -75,6 +85,16 @@ export const perlFilePermissions: Rule = {
           severity: 'warning',
           category: 'security',
           fix: 'Use restrictive permissions (e.g., 0644 for files, 0755 for directories).',
+          fixAction: {
+            range: {
+              startLine: i + 1,
+              startCol: permStart + 1,
+              endLine: i + 1,
+              endCol: permStart + chmodMatch[1].length + 1,
+            },
+            replacement: safePerm,
+            description: `Replace insecure permission ${chmodMatch[1]} with ${safePerm}`,
+          },
         });
       }
     }
