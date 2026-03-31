@@ -84,6 +84,16 @@ export const perlDeprecatedModules: Rule = {
             severity: 'warning',
             category: 'compatibility',
             fix: suggestion,
+            fixAction: {
+              range: {
+                startLine: i + 1,
+                startCol: 1,
+                endLine: i + 1,
+                endCol: line.length + 1,
+              },
+              replacement: `# ${line.trim()} # DEPRECATED`,
+              description: `Comment out deprecated module: ${mod}`,
+            },
           });
         }
       }

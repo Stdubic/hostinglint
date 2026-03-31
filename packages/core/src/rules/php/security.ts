@@ -73,7 +73,9 @@ export const phpXss: Rule = {
       for (const pattern of xssPatterns) {
         const match = line.match(pattern);
         if (match && match.index !== undefined) {
-          results.push({
+          // Extract the variable being echoed for fixAction
+          const varMatch = line.match(/\b(?:echo|print)\s+(\$(?:_GET|_POST|_REQUEST|_SERVER|params)\[[^\]]+\])/);
+          const result: LintResult = {
             file: filePath,
             line: i + 1,
             column: match.index + 1,
@@ -82,7 +84,23 @@ export const phpXss: Rule = {
             severity: 'error',
             category: 'security',
             fix: 'Wrap output with htmlspecialchars($value, ENT_QUOTES, \'UTF-8\') or use WHMCS Smarty templates.',
-          });
+          };
+
+          if (varMatch && varMatch.index !== undefined) {
+            const varStart = varMatch.index + varMatch[0].indexOf(varMatch[1]);
+            result.fixAction = {
+              range: {
+                startLine: i + 1,
+                startCol: varStart + 1,
+                endLine: i + 1,
+                endCol: varStart + varMatch[1].length + 1,
+              },
+              replacement: `htmlspecialchars(${varMatch[1]}, ENT_QUOTES, 'UTF-8')`,
+              description: `Wrap ${varMatch[1]} with htmlspecialchars()`,
+            };
+          }
+
+          results.push(result);
         }
       }
     }
